@@ -13,15 +13,13 @@ export function TrackMesh({ trackData }: TrackMeshProps) {
     const width = 12;
     const depth = 1;
     
-    // With computeFixedUpFrames:
-    // normal points UP (Y). binormal points RIGHT (X).
-    // ExtrudeGeometry maps Shape X to normal (UP), Shape Y to binormal (RIGHT).
-    // So X = depth, Y = width.
-    shape.moveTo(-depth / 2, -width / 2);
-    shape.lineTo(depth / 2, -width / 2);
-    shape.lineTo(depth / 2, width / 2);
-    shape.lineTo(-depth / 2, width / 2);
-    shape.lineTo(-depth / 2, -width / 2);
+    // ExtrudeGeometry maps Shape X to binormal (horizontal), Shape Y to normal (vertical).
+    // So X = width, Y = depth.
+    shape.moveTo(-width / 2, -depth / 2);
+    shape.lineTo(width / 2, -depth / 2);
+    shape.lineTo(width / 2, depth / 2);
+    shape.lineTo(-width / 2, depth / 2);
+    shape.lineTo(-width / 2, -depth / 2);
 
     const extrudeSettings = {
       steps: 400,
