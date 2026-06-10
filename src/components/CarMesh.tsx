@@ -74,6 +74,7 @@ export function CarMesh({ curve, updateMyState }: CarMeshProps) {
       maxAcceleration: 40, 
       maxBraking: 60,
       maxVelocity: 150, 
+      maxLateralG: 40,
       steeringSensitivity: 0.015, // Radian turn per meter traveled
       gravity: 50 // m/s^2
     };

@@ -24,6 +24,7 @@ export interface CartesianCapabilities {
   maxAcceleration: number; // m/s^2
   maxBraking: number;      // m/s^2
   maxVelocity: number;     // m/s
+  maxLateralG: number;     // m/s^2
   steeringSensitivity: number; // radians per meter traveled
   gravity: number;         // m/s^2
 }

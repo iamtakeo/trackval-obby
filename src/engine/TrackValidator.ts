@@ -1,4 +1,4 @@
-import type { CarCapabilities } from './KinematicPhysics';
+import type { CartesianCapabilities as CarCapabilities } from './CartesianPhysics';
 
 export type SegmentType = 'straight' | 'curve' | 'jump';
 
