@@ -11,7 +11,15 @@ export function RampsMesh() {
       // X = length, Y = height
       const shape = new THREE.Shape();
       shape.moveTo(0, 0); // Start of ramp
-      shape.lineTo(ramp.length, ramp.height); // Peak of ramp
+      
+      // Use a quadratic curve (t^2) so it starts flat and gets steep
+      const curveSegments = 20;
+      for (let i = 1; i <= curveSegments; i++) {
+        const t = i / curveSegments;
+        const curveT = t * t;
+        shape.lineTo(ramp.length * t, ramp.height * curveT);
+      }
+      
       shape.lineTo(ramp.length, 0); // Base of peak
       shape.lineTo(0, 0);
 

@@ -221,11 +221,15 @@ export class CartesianPhysics {
       
       // Ramp bounding box
       if (localX >= -ramp.width / 2 && localX <= ramp.width / 2 && localZ >= 0 && localZ <= ramp.length) {
-         const rampY = ramp.position[1] + (localZ / ramp.length) * ramp.height;
+         const t = localZ / ramp.length;
+         const curveT = t * t;
+         const rampY = ramp.position[1] + curveT * ramp.height;
+         
          // Only apply if the car is physically near or above the surface
          if (rampY > targetSurfaceY && newState.position.y >= rampY - 2.0) {
             targetSurfaceY = rampY;
-            const slope = Math.atan2(ramp.height, ramp.length);
+            // The slope of t^2 * H is the derivative wrt localZ: 2 * H * localZ / L^2
+            const slope = Math.atan2(2 * ramp.height * t, ramp.length);
             const normalLocalY = Math.cos(slope);
             const normalLocalZ = -Math.sin(slope); // Tilt backwards along local Z
             
