@@ -5,9 +5,9 @@ import type { CartesianCapabilities } from './engine/CartesianPhysics';
 type Listener = () => void;
 
 export const defaultCarCapabilities: CartesianCapabilities = {
-  maxAcceleration: 40,
+  maxAcceleration: 25,
   maxBraking: 60,
-  maxVelocity: 150,
+  maxVelocity: 110,
   maxLateralG: 40,
   steeringSensitivity: 0.015,
   gravity: 50

@@ -8,6 +8,7 @@ export function GeneratorMenu() {
   
   const [segments, setSegments] = useState(15);
   const [generations, setGenerations] = useState(20);
+  const [isClosed, setIsClosed] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
@@ -30,7 +31,8 @@ export function GeneratorMenu() {
       try {
         const result = generateTrackCurve({
           segmentsPerTrack: segments,
-          generations: generations
+          generations: generations,
+          isClosed: isClosed
         });
 
         if (result.failureReason) {
@@ -115,6 +117,18 @@ export function GeneratorMenu() {
             onChange={e => setGenerations(parseInt(e.target.value))}
             style={{ width: '100%' }}
           />
+        </div>
+
+        <div style={{ marginBottom: '30px' }}>
+          <label style={{ ...labelStyle, alignItems: 'center', cursor: 'pointer' }}>
+            <span>Closed Loop Track</span>
+            <input 
+              type="checkbox" 
+              checked={isClosed}
+              onChange={e => setIsClosed(e.target.checked)}
+              style={{ width: '20px', height: '20px', accentColor: '#00e5ff' }}
+            />
+          </label>
         </div>
 
         {errorMsg && (

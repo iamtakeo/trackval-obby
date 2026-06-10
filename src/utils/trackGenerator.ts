@@ -51,6 +51,7 @@ export interface GeneratorParams {
   generations?: number;
   elevationVariance?: number; // 1 = normal, higher = steeper hills
   curvatureVariance?: number; // 1 = normal, higher = sharper turns
+  isClosed?: boolean;
 }
 
 const defaultCapabilities: CartesianCapabilities = {
@@ -98,11 +99,25 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
 
     const splinePoints = MathOracle.generateSpline(bestDna, 5);
 
-    const vectors = splinePoints.map(sp => new THREE.Vector3(
+    let vectors = splinePoints.map(sp => new THREE.Vector3(
       sp.position[0],
       sp.position[2],
       -sp.position[1]
     ));
+
+    if (params.isClosed) {
+      const numPoints = vectors.length;
+      if (numPoints > 1) {
+        const firstPoint = vectors[0];
+        const lastPoint = vectors[numPoints - 1];
+        const offset = new THREE.Vector3().subVectors(firstPoint, lastPoint);
+        for (let i = 0; i < numPoints; i++) {
+          const factor = i / (numPoints - 1);
+          vectors[i].add(offset.clone().multiplyScalar(factor));
+        }
+        vectors[numPoints - 1].copy(vectors[0]);
+      }
+    }
 
     let minY = Infinity;
     for (const v of vectors) {
@@ -114,7 +129,7 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
       v.y += yOffset;
     }
 
-    const curve = new THREE.CatmullRomCurve3(vectors, false, 'centripetal', 0.5);
+    const curve = new THREE.CatmullRomCurve3(vectors, params.isClosed || false, 'centripetal', 0.5);
     const frames = computeFixedUpFrames(curve, 400);
     
     return { curve, frames }; 

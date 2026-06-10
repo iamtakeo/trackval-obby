@@ -18,6 +18,7 @@ export interface CarInputs {
   throttle: number; // 0 to 1
   brake: number; // 0 to 1
   steering: number; // -1 (left) to 1 (right)
+  handbrake?: boolean;
 }
 
 export interface CartesianCapabilities {
@@ -124,6 +125,10 @@ export class CartesianPhysics {
     } else if (inputs.brake > 0) {
       accel = -inputs.brake * this.capabilities.maxBraking;
     }
+    
+    if (inputs.handbrake && newState.isGrounded) {
+      accel -= Math.sign(newState.forwardSpeed) * this.capabilities.maxBraking * 0.8;
+    }
 
     // Apply drag based on velocity square
     const speedRatio = Math.abs(newState.forwardSpeed) / this.capabilities.maxVelocity;
@@ -145,7 +150,13 @@ export class CartesianPhysics {
     // Reverse steering direction if driving backwards
     const direction = Math.sign(newState.forwardSpeed) >= 0 ? 1 : -1;
     
-    const turnRadiusEffect = effectiveSpeedForSteering * this.capabilities.steeringSensitivity;
+    let currentSensitivity = this.capabilities.steeringSensitivity;
+    if (inputs.handbrake && Math.abs(newState.forwardSpeed) > 10) {
+       // Handbrake drifting increases turn rate!
+       currentSensitivity *= 2.5; 
+    }
+    
+    const turnRadiusEffect = effectiveSpeedForSteering * currentSensitivity;
     // inputs.steering is -1 (Left) to 1 (Right).
     // In our 3D world, right turn means decreasing yaw angle (negative rotation around Y)
     newState.heading -= inputs.steering * direction * turnRadiusEffect * dt;
