@@ -11,7 +11,7 @@ export interface Player {
   name?: string;
 }
 
-const PARTY_HOST = typeof window !== "undefined" && window.location.hostname === "localhost" ? "127.0.0.1:1999" : "trackval-obby.iamtakeo.partykit.dev";
+const PARTY_HOST = "trackval-obby.iamtakeo.partykit.dev";
 const ROOM_ID = "trackval-global"; // For a global room
 
 export function useMultiplayer() {
