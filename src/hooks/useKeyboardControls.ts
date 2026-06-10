@@ -4,6 +4,7 @@ export interface KeyboardInputs {
   throttle: number; // 0 to 1
   brake: number; // 0 to 1
   steering: number; // -1 to 1
+  respawn: boolean;
 }
 
 export function useKeyboardControls(): KeyboardInputs {
@@ -11,6 +12,7 @@ export function useKeyboardControls(): KeyboardInputs {
     throttle: 0,
     brake: 0,
     steering: 0,
+    respawn: false,
   });
 
   useEffect(() => {
@@ -32,6 +34,9 @@ export function useKeyboardControls(): KeyboardInputs {
         case 'ArrowRight':
           setInputs((prev) => ({ ...prev, steering: 1 }));
           break;
+        case 'KeyR':
+          setInputs((prev) => ({ ...prev, respawn: true }));
+          break;
       }
     };
 
@@ -44,6 +49,9 @@ export function useKeyboardControls(): KeyboardInputs {
         case 'KeyS':
         case 'ArrowDown':
           setInputs((prev) => ({ ...prev, brake: 0 }));
+          break;
+        case 'KeyR':
+          setInputs((prev) => ({ ...prev, respawn: false }));
           break;
         case 'KeyA':
         case 'ArrowLeft':
