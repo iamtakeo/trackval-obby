@@ -39,25 +39,7 @@ const HUD: React.FC = () => {
         </div>
       </div>
 
-      <button 
-        onClick={() => gameStore.setMenuOpen(true)}
-        className="glass-panel"
-        style={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
-          padding: '10px 20px',
-          background: 'rgba(0, 0, 0, 0.5)',
-          color: '#00e5ff',
-          border: '1px solid #00e5ff',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          pointerEvents: 'auto'
-        }}
-      >
-        Track Generator
-      </button>
+
     </div>
   );
 };
