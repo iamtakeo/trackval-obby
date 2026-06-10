@@ -90,6 +90,7 @@ export function TrackMesh({ trackData }: TrackMeshProps) {
         args={[undefined, undefined, pillarData.length]}
         castShadow
         receiveShadow
+        frustumCulled={false}
       >
         <cylinderGeometry args={[2, 2.5, 1, 16]} />
         <meshStandardMaterial 
