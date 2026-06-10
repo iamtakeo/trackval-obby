@@ -323,9 +323,101 @@ export function GeneratorMenu() {
                 />
               </div>
             </div>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={labelStyle}><span>Secondary Color (Decals)</span></label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input 
+                  type="color" 
+                  value={carAppearance.secondaryColor}
+                  onChange={e => gameStore.setCarAppearance({ secondaryColor: e.target.value })}
+                  style={{ width: '50px', height: '40px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                />
+                <input 
+                  type="text" 
+                  value={carAppearance.secondaryColor}
+                  onChange={e => gameStore.setCarAppearance({ secondaryColor: e.target.value })}
+                  style={{ flex: 1, padding: '10px', background: '#222', color: '#fff', border: '1px solid #555', borderRadius: '4px' }}
+                />
+              </div>
+            </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={labelStyle}><span>Thruster & Glow Color</span></label>
+              <label style={labelStyle}><span>Decal Pattern</span></label>
+              <select 
+                value={carAppearance.decalStyle}
+                onChange={e => gameStore.setCarAppearance({ decalStyle: e.target.value as any })}
+                style={{ width: '100%', padding: '10px', background: '#222', color: '#fff', border: '1px solid #555', borderRadius: '4px', fontSize: '16px' }}
+              >
+                <option value="none">None</option>
+                <option value="racing-stripes">Racing Stripes</option>
+                <option value="hazard">Hazard Stripes</option>
+                <option value="checkered">Checkered</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={labelStyle}><span>Spoiler / Aero</span></label>
+              <select 
+                value={carAppearance.spoiler}
+                onChange={e => gameStore.setCarAppearance({ spoiler: e.target.value as any })}
+                style={{ width: '100%', padding: '10px', background: '#222', color: '#fff', border: '1px solid #555', borderRadius: '4px', fontSize: '16px' }}
+              >
+                <option value="none">None</option>
+                <option value="ducktail">Ducktail Lip</option>
+                <option value="gt-wing">GT Racing Wing</option>
+                <option value="cyber">Cyber Fins</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={labelStyle}><span>Accessories</span></label>
+              <select 
+                value={carAppearance.accessory}
+                onChange={e => gameStore.setCarAppearance({ accessory: e.target.value as any })}
+                style={{ width: '100%', padding: '10px', background: '#222', color: '#fff', border: '1px solid #555', borderRadius: '4px', fontSize: '16px' }}
+              >
+                <option value="none">None</option>
+                <option value="antenna">Whip Antenna</option>
+                <option value="spikes">Mad-Max Spikes</option>
+                <option value="police-sirens">Police Sirens</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ ...labelStyle, alignItems: 'center', cursor: 'pointer' }}>
+                <span>Underglow Lights</span>
+                <input 
+                  type="checkbox" 
+                  checked={carAppearance.underglow}
+                  onChange={e => gameStore.setCarAppearance({ underglow: e.target.checked })}
+                  style={{ width: '20px', height: '20px', accentColor: '#ffaa00' }}
+                />
+              </label>
+            </div>
+
+            {carAppearance.underglow && (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={labelStyle}><span>Underglow Color</span></label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <input 
+                    type="color" 
+                    value={carAppearance.underglowColor}
+                    onChange={e => gameStore.setCarAppearance({ underglowColor: e.target.value })}
+                    style={{ width: '50px', height: '40px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                  />
+                  <input 
+                    type="text" 
+                    value={carAppearance.underglowColor}
+                    onChange={e => gameStore.setCarAppearance({ underglowColor: e.target.value })}
+                    style={{ flex: 1, padding: '10px', background: '#222', color: '#fff', border: '1px solid #555', borderRadius: '4px' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={labelStyle}><span>Thruster & Main Glow Color</span></label>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <input 
                   type="color" 

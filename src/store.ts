@@ -4,7 +4,13 @@ import type { CartesianCapabilities } from './engine/CartesianPhysics';
 export interface CarAppearance {
   bodyStyle: 'speedster' | 'brute' | 'interceptor';
   primaryColor: string;
+  secondaryColor: string;
   thrusterColor: string;
+  decalStyle: 'none' | 'racing-stripes' | 'hazard' | 'checkered';
+  spoiler: 'none' | 'ducktail' | 'gt-wing' | 'cyber';
+  underglow: boolean;
+  underglowColor: string;
+  accessory: 'none' | 'antenna' | 'spikes' | 'police-sirens';
 }
 
 type Listener = () => void;
@@ -27,7 +33,13 @@ class GameStore {
   private carAppearance: CarAppearance = {
     bodyStyle: 'speedster',
     primaryColor: '#00e5ff',
-    thrusterColor: '#ff0055'
+    secondaryColor: '#ffffff',
+    thrusterColor: '#ff0055',
+    decalStyle: 'none',
+    spoiler: 'none',
+    underglow: false,
+    underglowColor: '#00e5ff',
+    accessory: 'none'
   };
   private connectedPlayers: Record<string, any> = {};
   private listeners = new Set<Listener>();
