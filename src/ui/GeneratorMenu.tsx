@@ -58,7 +58,8 @@ export function GeneratorMenu() {
       justifyContent: 'center',
       zIndex: 1000,
       fontFamily: 'Inter, sans-serif',
-      color: '#fff'
+      color: '#fff',
+      pointerEvents: 'auto'
     }}>
       <div style={{
         background: '#1a1a1a',

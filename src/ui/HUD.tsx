@@ -52,7 +52,8 @@ const HUD: React.FC = () => {
           border: '1px solid #00e5ff',
           borderRadius: '8px',
           cursor: 'pointer',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+          pointerEvents: 'auto'
         }}
       >
         Track Generator
