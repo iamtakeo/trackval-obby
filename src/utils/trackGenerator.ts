@@ -15,7 +15,7 @@ export interface TrackData {
   failureReason?: string;
 }
 
-export function computeFixedUpFrames(curve: THREE.CatmullRomCurve3, segments: number) {
+export function computeFixedUpFrames(curve: THREE.CatmullRomCurve3, segments: number, splinePoints?: any[]) {
   const tangents = [];
   const normals = [];
   const binormals = [];
@@ -36,10 +36,27 @@ export function computeFixedUpFrames(curve: THREE.CatmullRomCurve3, segments: nu
       binormal.normalize();
     }
     
-    binormals.push(binormal);
-
     // normal is perpendicular to binormal and tangent (this will be our UP vector)
     const normal = new THREE.Vector3().crossVectors(binormal, tangent).normalize();
+
+    // Apply track banking if splinePoints are provided
+    if (splinePoints && splinePoints.length > 0) {
+      const floatIndex = u * (splinePoints.length - 1);
+      const idx = Math.floor(floatIndex);
+      const frac = floatIndex - idx;
+      const bank1 = splinePoints[idx].bank || 0;
+      const bank2 = splinePoints[Math.min(idx + 1, splinePoints.length - 1)].bank || 0;
+      const bankAngle = bank1 + (bank2 - bank1) * frac;
+
+      if (Math.abs(bankAngle) > 0.001) {
+        // Rotate the normal and binormal around the tangent axis by the bank angle
+        const bankQuat = new THREE.Quaternion().setFromAxisAngle(tangent, bankAngle);
+        normal.applyQuaternion(bankQuat);
+        binormal.applyQuaternion(bankQuat);
+      }
+    }
+
+    binormals.push(binormal);
     normals.push(normal);
   }
 
@@ -152,7 +169,7 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
     }
 
     const curve = new THREE.CatmullRomCurve3(vectors, params.isClosed || false, 'centripetal', 0.5);
-    const frames = computeFixedUpFrames(curve, 400);
+    const frames = computeFixedUpFrames(curve, 400, splinePoints);
     
     return { curve, frames }; 
   }
