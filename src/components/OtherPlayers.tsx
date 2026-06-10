@@ -1,12 +1,15 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { CarModel } from './CarModel';
+import type { CarAppearance } from '../store';
 
 interface Player {
   id: string;
   position: [number, number, number];
   rotation: [number, number, number];
   color?: string;
+  appearance?: CarAppearance;
 }
 
 interface OtherPlayersProps {
@@ -36,29 +39,7 @@ function RemoteCar({ player }: { player: Player }) {
 
   return (
     <group ref={meshRef}>
-      {/* Sci-fi Hover Car Main Body - Ghostly Appearance */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[2.2, 0.6, 4.5]} />
-        <meshStandardMaterial 
-          color={player.color || "#ffaa00"} 
-          roughness={0.2} 
-          metalness={0.9} 
-          transparent
-          opacity={0.5}
-        />
-      </mesh>
-      
-      {/* Cockpit Canopy */}
-      <mesh position={[0, 0.5, -0.5]}>
-        <boxGeometry args={[1.6, 0.6, 2.2]} />
-        <meshStandardMaterial color="#0a0a0a" roughness={0.1} metalness={1} transparent opacity={0.6} />
-      </mesh>
-      
-      {/* Neon Thruster Engine */}
-      <mesh position={[0, 0, 2.3]}>
-        <boxGeometry args={[1.8, 0.3, 0.2]} />
-        <meshBasicMaterial color="#ffaa00" transparent opacity={0.8} />
-      </mesh>
+      <CarModel appearance={player.appearance} isGhost={true} />
     </group>
   );
 }

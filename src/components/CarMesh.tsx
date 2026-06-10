@@ -7,6 +7,7 @@ import type { CartesianState, TrackGeometry } from '../engine/CartesianPhysics';
 import type { Player } from '../hooks/useMultiplayer';
 import type { TrackData } from '../utils/trackGenerator';
 import { gameStore } from '../store';
+import { CarModel } from './CarModel';
 
 // A simple adapter to allow CartesianPhysics to query the mathematical track spline
 class CartesianTrackAdapter implements TrackGeometry {
@@ -80,6 +81,7 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
   const lastBroadcast = useRef(0);
 
   const carParams = useSyncExternalStore(gameStore.subscribe, gameStore.getCarParameters);
+  const carAppearance = useSyncExternalStore(gameStore.subscribe, gameStore.getCarAppearance);
 
   const physics = useMemo(() => {
     const trackAdapter = new CartesianTrackAdapter(trackData.curve, trackData.frames);
@@ -200,24 +202,7 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
 
   return (
     <group ref={carRef}>
-      {/* Sci-fi Hover Car Main Body */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[2.2, 0.6, 4.5]} />
-        <meshStandardMaterial color="#00e5ff" roughness={0.2} metalness={0.9} />
-      </mesh>
-      
-      {/* Cockpit Canopy */}
-      <mesh position={[0, 0.5, -0.5]}>
-        <boxGeometry args={[1.6, 0.6, 2.2]} />
-        <meshStandardMaterial color="#0a0a0a" roughness={0.1} metalness={1} />
-      </mesh>
-      
-      {/* Neon Thruster Engine */}
-      <mesh position={[0, 0, 2.3]}>
-        <boxGeometry args={[1.8, 0.3, 0.2]} />
-        <meshBasicMaterial color="#ff0055" />
-        <pointLight color="#ff0055" intensity={2} distance={10} />
-      </mesh>
+      <CarModel appearance={carAppearance} isGhost={false} />
     </group>
   );
 }

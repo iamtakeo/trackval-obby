@@ -6,6 +6,7 @@ export interface Player {
   rotation: [number, number, number];
   color?: string;
   name?: string;
+  appearance?: any;
 }
 
 export default class TrackvalServer implements Party.Server {
@@ -74,6 +75,7 @@ export default class TrackvalServer implements Party.Server {
           if (data.rotation) player.rotation = data.rotation;
           if (data.color) player.color = data.color;
           if (data.name) player.name = data.name;
+          if (data.appearance) player.appearance = data.appearance;
           
           // Broadcast update
           this.room.broadcast(JSON.stringify({

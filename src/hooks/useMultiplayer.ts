@@ -1,7 +1,9 @@
-import { useState, useCallback, useSyncExternalStore } from 'react';
+import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
 import usePartySocket from 'partysocket/react';
 import { gameStore } from '../store';
 import { generateTrackCurve } from '../utils/trackGenerator';
+
+import type { CarAppearance } from '../store';
 
 export interface Player {
   id: string;
@@ -9,6 +11,7 @@ export interface Player {
   rotation: [number, number, number];
   color?: string;
   name?: string;
+  appearance?: CarAppearance;
 }
 
 const PARTY_HOST = "trackval-obby.iamtakeo.partykit.dev";
@@ -65,7 +68,8 @@ export function useMultiplayer() {
                 position: data.position || player.position,
                 rotation: data.rotation || player.rotation,
                 color: data.color || player.color,
-                name: data.name || player.name
+                name: data.name || player.name,
+                appearance: data.appearance || player.appearance
               }
             });
             break;
@@ -112,11 +116,29 @@ export function useMultiplayer() {
     }
   }, [socket]);
 
+  const broadcastAppearance = useCallback((appearance: CarAppearance) => {
+    if (socket) {
+      socket.send(JSON.stringify({
+        type: 'update',
+        appearance
+      }));
+    }
+  }, [socket]);
+
+  // Sync appearance whenever it changes locally
+  const localAppearance = gameStore.getCarAppearance();
+  useEffect(() => {
+    if (isConnected) {
+      broadcastAppearance(localAppearance);
+    }
+  }, [localAppearance, isConnected, broadcastAppearance]);
+
   return {
     players,
     updateMyState,
     broadcastTrack,
     broadcastParams,
+    broadcastAppearance,
     isConnected,
     socket,
     socketId: socket?.id

@@ -7,7 +7,7 @@ import type { CartesianCapabilities } from '../engine/CartesianPhysics';
 export function GeneratorMenu() {
   const { broadcastTrack, broadcastParams, isConnected, socketId } = useMultiplayer();
   const [isOpen, setIsOpen] = useState(gameStore.getMenuOpen());
-  const [currentMenu, setCurrentMenu] = useState<'main' | 'generator' | 'parameters' | 'players'>('main');
+  const [currentMenu, setCurrentMenu] = useState<'main' | 'generator' | 'parameters' | 'players' | 'garage'>('main');
   
   const [segments, setSegments] = useState(15);
   const [generations, setGenerations] = useState(20);
@@ -18,6 +18,7 @@ export function GeneratorMenu() {
   const carParams = useSyncExternalStore(gameStore.subscribe, gameStore.getCarParameters);
   const connectedPlayers = useSyncExternalStore(gameStore.subscribe, gameStore.getConnectedPlayers);
   const myName = useSyncExternalStore(gameStore.subscribe, gameStore.getPlayerName);
+  const carAppearance = useSyncExternalStore(gameStore.subscribe, gameStore.getCarAppearance);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -120,6 +121,7 @@ export function GeneratorMenu() {
       {currentMenu === 'main' && (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <button style={buttonStyle} onClick={() => setCurrentMenu('players')} onMouseOver={e => e.currentTarget.style.borderColor = '#00ffaa'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Players ({Object.keys(connectedPlayers).length + 1})</button>
+          <button style={buttonStyle} onClick={() => setCurrentMenu('garage')} onMouseOver={e => e.currentTarget.style.borderColor = '#ffaa00'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Garage (Customize Car)</button>
           <button style={buttonStyle} onClick={() => setCurrentMenu('generator')} onMouseOver={e => e.currentTarget.style.borderColor = '#00e5ff'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Track Generator</button>
           <button style={buttonStyle} onClick={() => setCurrentMenu('parameters')} onMouseOver={e => e.currentTarget.style.borderColor = '#ff0055'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Car Parameters</button>
           <button style={{ ...buttonStyle, background: 'transparent', borderColor: '#888' }} onClick={() => gameStore.setMenuOpen(false)}>Resume Game</button>
@@ -280,6 +282,64 @@ export function GeneratorMenu() {
                   No one else is here yet.
                 </div>
               )}
+            </div>
+          </div>
+          <button style={{ ...buttonStyle, background: 'transparent' }} onClick={() => setCurrentMenu('main')}>Back</button>
+        </>
+      )}
+
+      {currentMenu === 'garage' && (
+        <>
+          <div style={{...cardStyle, boxShadow: '0 0 40px rgba(255, 170, 0, 0.1)'}}>
+            <h2 style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#ffaa00' }}>Garage</h2>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={labelStyle}><span>Body Style</span></label>
+              <select 
+                value={carAppearance.bodyStyle}
+                onChange={e => gameStore.setCarAppearance({ bodyStyle: e.target.value as any })}
+                style={{ width: '100%', padding: '10px', background: '#222', color: '#fff', border: '1px solid #555', borderRadius: '4px', fontSize: '16px' }}
+              >
+                <option value="speedster">Speedster (Sleek)</option>
+                <option value="brute">Brute (Heavy)</option>
+                <option value="interceptor">Interceptor (Sharp)</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={labelStyle}><span>Primary Color</span></label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input 
+                  type="color" 
+                  value={carAppearance.primaryColor}
+                  onChange={e => gameStore.setCarAppearance({ primaryColor: e.target.value })}
+                  style={{ width: '50px', height: '40px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                />
+                <input 
+                  type="text" 
+                  value={carAppearance.primaryColor}
+                  onChange={e => gameStore.setCarAppearance({ primaryColor: e.target.value })}
+                  style={{ flex: 1, padding: '10px', background: '#222', color: '#fff', border: '1px solid #555', borderRadius: '4px' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={labelStyle}><span>Thruster & Glow Color</span></label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input 
+                  type="color" 
+                  value={carAppearance.thrusterColor}
+                  onChange={e => gameStore.setCarAppearance({ thrusterColor: e.target.value })}
+                  style={{ width: '50px', height: '40px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                />
+                <input 
+                  type="text" 
+                  value={carAppearance.thrusterColor}
+                  onChange={e => gameStore.setCarAppearance({ thrusterColor: e.target.value })}
+                  style={{ flex: 1, padding: '10px', background: '#222', color: '#fff', border: '1px solid #555', borderRadius: '4px' }}
+                />
+              </div>
             </div>
           </div>
           <button style={{ ...buttonStyle, background: 'transparent' }} onClick={() => setCurrentMenu('main')}>Back</button>

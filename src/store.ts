@@ -1,6 +1,12 @@
 import type { TrackData } from './utils/trackGenerator';
 import type { CartesianCapabilities } from './engine/CartesianPhysics';
 
+export interface CarAppearance {
+  bodyStyle: 'speedster' | 'brute' | 'interceptor';
+  primaryColor: string;
+  thrusterColor: string;
+}
+
 type Listener = () => void;
 
 export const defaultCarCapabilities: CartesianCapabilities = {
@@ -18,6 +24,11 @@ class GameStore {
   private isMenuOpen = false;
   private carParameters: CartesianCapabilities = { ...defaultCarCapabilities };
   private playerName: string = "Guest";
+  private carAppearance: CarAppearance = {
+    bodyStyle: 'speedster',
+    primaryColor: '#00e5ff',
+    thrusterColor: '#ff0055'
+  };
   private connectedPlayers: Record<string, any> = {};
   private listeners = new Set<Listener>();
 
@@ -25,6 +36,13 @@ class GameStore {
     // Track will be generated or synced via the multiplayer network
     this.trackData = null;
   }
+
+  setCarAppearance(appearance: Partial<CarAppearance>) {
+    this.carAppearance = { ...this.carAppearance, ...appearance };
+    this.emit();
+  }
+
+  getCarAppearance = () => this.carAppearance;
 
   setPlayerName(name: string) {
     if (this.playerName !== name) {
