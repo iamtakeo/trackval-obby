@@ -13,13 +13,13 @@ export function TrackMesh({ trackData }: TrackMeshProps) {
     const width = 12;
     const depth = 1;
     
-    // ExtrudeGeometry maps Shape X to binormal (horizontal), Shape Y to normal (vertical).
-    // So X = width, Y = depth.
-    shape.moveTo(-width / 2, -depth / 2);
-    shape.lineTo(width / 2, -depth / 2);
-    shape.lineTo(width / 2, depth / 2);
-    shape.lineTo(-width / 2, depth / 2);
-    shape.lineTo(-width / 2, -depth / 2);
+    // Through visual confirmation, ExtrudeGeometry maps Shape X to the vertical vector, and Shape Y to the horizontal vector.
+    // To make the track lay flat, Shape X must be depth (thickness) and Shape Y must be width.
+    shape.moveTo(-depth / 2, -width / 2);
+    shape.lineTo(depth / 2, -width / 2);
+    shape.lineTo(depth / 2, width / 2);
+    shape.lineTo(-depth / 2, width / 2);
+    shape.lineTo(-depth / 2, -width / 2);
 
     const extrudeSettings = {
       steps: 400,
