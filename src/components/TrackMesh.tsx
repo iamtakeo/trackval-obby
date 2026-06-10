@@ -12,11 +12,13 @@ export function TrackMesh({ curve }: TrackMeshProps) {
     const width = 12;
     const depth = 1;
     
-    shape.moveTo(-width / 2, -depth / 2);
-    shape.lineTo(width / 2, -depth / 2);
-    shape.lineTo(width / 2, depth / 2);
-    shape.lineTo(-width / 2, depth / 2);
-    shape.lineTo(-width / 2, -depth / 2);
+    // ExtrudeGeometry maps Shape X to the binormal (vertical) and Shape Y to the normal (horizontal).
+    // To make the track lay flat, X must be the thickness (depth) and Y must be the width.
+    shape.moveTo(-depth / 2, -width / 2);
+    shape.lineTo(depth / 2, -width / 2);
+    shape.lineTo(depth / 2, width / 2);
+    shape.lineTo(-depth / 2, width / 2);
+    shape.lineTo(-depth / 2, -width / 2);
 
     const extrudeSettings: THREE.ExtrudeGeometryOptions = {
       steps: 400,
