@@ -7,13 +7,14 @@ import { CarMesh } from './CarMesh';
 import { OtherPlayers } from './OtherPlayers';
 import { useMultiplayer } from '../hooks/useMultiplayer';
 import { gameStore } from '../store';
+import type { TrackData } from '../utils/trackGenerator';
 
 export function Renderer() {
-  const [curve, setCurve] = useState<THREE.CatmullRomCurve3 | null>(gameStore.getTrackCurve());
+  const [trackData, setTrackData] = useState<TrackData | null>(gameStore.getTrackData());
 
   useEffect(() => {
     const unsubscribe = gameStore.subscribe(() => {
-      setCurve(gameStore.getTrackCurve());
+      setTrackData(gameStore.getTrackData());
     });
     return unsubscribe;
   }, []);
@@ -51,8 +52,8 @@ export function Renderer() {
         </Plane>
         
         {/* Game Entities */}
-        {curve && <TrackMesh curve={curve} />}
-        {curve && <CarMesh curve={curve} updateMyState={updateMyState} />}
+        {trackData && <TrackMesh trackData={trackData} />}
+        {trackData && <CarMesh trackData={trackData} updateMyState={updateMyState} />}
         <OtherPlayers players={players} />
       </Canvas>
     </div>

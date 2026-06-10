@@ -1,45 +1,48 @@
 import { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
+import type { TrackData } from '../utils/trackGenerator';
 
 interface TrackMeshProps {
-  curve: THREE.CatmullRomCurve3;
+  trackData: TrackData;
 }
 
-export function TrackMesh({ curve }: TrackMeshProps) {
+export function TrackMesh({ trackData }: TrackMeshProps) {
   const { geometry, pillarData } = useMemo(() => {
     // 1. Create the Track Extrusion
     const shape = new THREE.Shape();
     const width = 12;
     const depth = 1;
     
-    // ExtrudeGeometry maps Shape X to the binormal (vertical) and Shape Y to the normal (horizontal).
-    // To make the track lay flat, X must be the thickness (depth) and Y must be the width.
+    // With computeFixedUpFrames:
+    // normal points UP (Y). binormal points RIGHT (X).
+    // ExtrudeGeometry maps Shape X to normal (UP), Shape Y to binormal (RIGHT).
+    // So X = depth, Y = width.
     shape.moveTo(-depth / 2, -width / 2);
     shape.lineTo(depth / 2, -width / 2);
     shape.lineTo(depth / 2, width / 2);
     shape.lineTo(-depth / 2, width / 2);
     shape.lineTo(-depth / 2, -width / 2);
 
-    const extrudeSettings: THREE.ExtrudeGeometryOptions = {
+    const extrudeSettings = {
       steps: 400,
       bevelEnabled: true,
       bevelSegments: 2,
       bevelSize: 0.2,
       bevelThickness: 0.2,
-      extrudePath: curve,
-    };
+      extrudePath: trackData.curve,
+      frames: trackData.frames
+    } as any;
 
     const trackGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
 
     // 2. Compute Pillar Positions
-    // Drop a pillar every 5% of the track length to support it
     const numPillars = 50; 
     const pData = [];
-    const groundY = -100;
+    const groundY = 0; // Fix grass height
 
     for (let i = 0; i < numPillars; i++) {
       const t = i / numPillars;
-      const pos = curve.getPointAt(t);
+      const pos = trackData.curve.getPointAt(t);
       
       const height = pos.y - groundY;
       const centerY = groundY + height / 2;
@@ -53,7 +56,7 @@ export function TrackMesh({ curve }: TrackMeshProps) {
     }
 
     return { geometry: trackGeo, pillarData: pData };
-  }, [curve]);
+  }, [trackData]);
 
   // Reference for the InstancedMesh
   const instancedMeshRef = useRef<THREE.InstancedMesh>(null);

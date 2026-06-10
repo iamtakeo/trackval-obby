@@ -1,63 +1,76 @@
 import { useRef, useMemo } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useKeyboardControls } from '../hooks/useKeyboardControls';
 import { CartesianPhysics } from '../engine/CartesianPhysics';
-import type { CartesianCapabilities, CartesianState, TrackGeometry } from '../engine/CartesianPhysics';
+import type { CartesianState, CartesianCapabilities, TrackGeometry } from '../engine/CartesianPhysics';
+import type { Player } from '../hooks/useMultiplayer';
+import type { TrackData } from '../utils/trackGenerator';
 import { gameStore } from '../store';
 
-interface CarMeshProps {
-  curve: THREE.CatmullRomCurve3;
-  updateMyState?: (stateUpdate: any) => void;
-}
-
-type FrenetFrames = { tangents: THREE.Vector3[], normals: THREE.Vector3[], binormals: THREE.Vector3[] };
-
+// A simple adapter to allow CartesianPhysics to query the mathematical track spline
 class CartesianTrackAdapter implements TrackGeometry {
   curve: THREE.CatmullRomCurve3;
-  frames: FrenetFrames;
-  length: number;
+  frames: { tangents: THREE.Vector3[], normals: THREE.Vector3[], binormals: THREE.Vector3[] };
 
-  constructor(curve: THREE.CatmullRomCurve3, frames: FrenetFrames, length: number) {
+  constructor(curve: THREE.CatmullRomCurve3, frames: { tangents: THREE.Vector3[], normals: THREE.Vector3[], binormals: THREE.Vector3[] }) {
     this.curve = curve;
     this.frames = frames;
-    this.length = length;
   }
 
-  getTotalLength(): number { return this.length; }
+  getTotalLength(): number {
+    return this.curve.getLength();
+  }
 
   private getT(s: number): number {
-    let u = s / this.length;
-    if (this.curve.closed) {
-      u = ((u % 1) + 1) % 1; 
-    } else {
-      u = Math.max(0, Math.min(1, u));
-    }
-    return u;
+    const totalLength = this.getTotalLength();
+    let t = s / totalLength;
+    t = Math.max(0, Math.min(1, t));
+    return t;
   }
 
-  private getInterpolatedVector(array: THREE.Vector3[], t: number): THREE.Vector3 {
-    const segments = array.length - 1;
-    const index = t * segments;
-    const i = Math.floor(index);
-    const f = index - i;
-    const nextI = Math.min(i + 1, segments);
-    return new THREE.Vector3().copy(array[i]).lerp(array[nextI], f).normalize();
+  private getInterpolatedVector(vectors: THREE.Vector3[], t: number): THREE.Vector3 {
+    const floatIndex = t * (vectors.length - 1);
+    const index = Math.floor(floatIndex);
+    const fraction = floatIndex - index;
+
+    if (index >= vectors.length - 1) return vectors[vectors.length - 1].clone();
+
+    const v1 = vectors[index];
+    const v2 = vectors[index + 1];
+    return new THREE.Vector3().copy(v1).lerp(v2, fraction).normalize();
   }
 
-  getCartesian(s: number, u: number) {
+  getCartesian(s: number, u: number): { x: number; y: number; z: number } {
     const t = this.getT(s);
     const point = this.curve.getPointAt(t);
+    // Binormal is used for lateral offset
     const binormal = this.getInterpolatedVector(this.frames.binormals, t);
     return point.add(binormal.multiplyScalar(u));
   }
 
-  getTangent(s: number) { return this.getInterpolatedVector(this.frames.tangents, this.getT(s)); }
-  getNormal(s: number) { return this.getInterpolatedVector(this.frames.normals, this.getT(s)); }
-  getBinormal(s: number) { return this.getInterpolatedVector(this.frames.binormals, this.getT(s)); }
+  getNormal(s: number): { x: number; y: number; z: number } {
+    const t = this.getT(s);
+    return this.getInterpolatedVector(this.frames.normals, t);
+  }
+
+  getBinormal(s: number): { x: number; y: number; z: number } {
+    const t = this.getT(s);
+    return this.getInterpolatedVector(this.frames.binormals, t);
+  }
+
+  getTangent(s: number): { x: number; y: number; z: number } {
+    const t = this.getT(s);
+    return this.getInterpolatedVector(this.frames.tangents, t);
+  }
 }
 
-export function CarMesh({ curve, updateMyState }: CarMeshProps) {
+interface CarMeshProps {
+  trackData: TrackData;
+  updateMyState: (state: Partial<Player>) => void;
+}
+
+export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
   const carRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
   const inputs = useKeyboardControls();
@@ -67,8 +80,7 @@ export function CarMesh({ curve, updateMyState }: CarMeshProps) {
   const lastBroadcast = useRef(0);
 
   const physics = useMemo(() => {
-    const frames = curve.computeFrenetFrames(400, false);
-    const trackAdapter = new CartesianTrackAdapter(curve, frames, curve.getLength());
+    const trackAdapter = new CartesianTrackAdapter(trackData.curve, trackData.frames);
     
     const capabilities: CartesianCapabilities = {
       maxAcceleration: 40, 
@@ -79,7 +91,7 @@ export function CarMesh({ curve, updateMyState }: CarMeshProps) {
       gravity: 50 // m/s^2
     };
     return new CartesianPhysics(capabilities, trackAdapter);
-  }, [curve]);
+  }, [trackData]);
 
   const getInitialState = (): CartesianState => {
     const startPos = physics.track.getCartesian(0, 0);

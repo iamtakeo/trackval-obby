@@ -1,18 +1,17 @@
-import * as THREE from 'three';
 import { generateTrackCurve } from './utils/trackGenerator';
+import type { TrackData } from './utils/trackGenerator';
 
 type Listener = () => void;
 
 class GameStore {
   private speed = 0;
-  private trackCurve: THREE.CatmullRomCurve3 | null = null;
+  private trackData: TrackData | null = null;
   private isMenuOpen = false;
   private listeners = new Set<Listener>();
 
   constructor() {
     // Generate the initial track
-    const result = generateTrackCurve({});
-    this.trackCurve = result.curve;
+    this.trackData = generateTrackCurve({});
   }
 
   setSpeed(newSpeed: number) {
@@ -24,12 +23,12 @@ class GameStore {
 
   getSpeed = () => this.speed;
 
-  setTrackCurve(curve: THREE.CatmullRomCurve3) {
-    this.trackCurve = curve;
+  setTrackData(data: TrackData) {
+    this.trackData = data;
     this.emit();
   }
 
-  getTrackCurve = () => this.trackCurve;
+  getTrackData = () => this.trackData;
 
   setMenuOpen(isOpen: boolean) {
     if (this.isMenuOpen !== isOpen) {

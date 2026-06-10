@@ -34,7 +34,7 @@ export function GeneratorMenu() {
           setErrorMsg(result.failureReason);
         } else {
           // Success!
-          gameStore.setTrackCurve(result.curve!);
+          gameStore.setTrackData(result);
           gameStore.setMenuOpen(false); // Close menu
         }
       } catch (err: any) {
