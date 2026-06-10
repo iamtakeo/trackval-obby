@@ -1,0 +1,64 @@
+Project Pitch: "Trackval Obby"
+
+An Analytically Validated Procedural Arcade Racer
+1. Project Intent & Vision
+
+The goal of this project is to create a high-speed, Trackmania-style 3D racing "obby" (obstacle course) powered by a robust procedural generation and automated validation engine.
+
+In games with user-generated or procedurally generated tracks, the most significant bottleneck is playability validation—ensuring tracks are thrilling but not fundamentally broken, impossible, or self-intersecting. "Trackval Obby" solves this by coupling a deterministic arcade physics engine with a lightning-fast Analytical Validation Pipeline.
+
+By treating the engine as a mathematically aware designer, we can dynamically evolve track segments using genetic algorithms to guarantee tension, flow, and absolute physical consistency before a human player ever touches the steering wheel.
+2. Core Physics Approach: Dual-State Kinematic Engine
+
+To emulate the satisfying, snappy handling of arcade legends while accommodating the massive jumps, gaps, and chaotic bails required of an "obby," the game relies on a state-machine-driven kinematic hybrid engine, completely bypassing unstable 3D rigid-body physics:
+
+    State 1: Grounded (Frenet Space Translation): When wheels are on the track, vehicles are mathematically bound to the centerline via a 2D coordinate system: longitudinal progress (s) and lateral offset (u). This guarantees flawless navigation of loops and banked corners without rigid-body clipping. Grip is deterministic, using a Kamm Friction Circle to trigger predictable, satisfying drifts.
+
+    State 2: Airborne (Cartesian Space): Obbys require leaving the track. The moment downward suspension raycasts fail to detect the track mesh, the car instantly detaches into a standard 3D Cartesian velocity vector (x,y,z) with parabolic gravity and air-control.
+
+    The Re-entry Protocol: Upon landing, a robust projection algorithm instantly maps the airborne car's 3D coordinates back to the nearest track spline, snapping it back into Frenet space for a seamless touchdown.
+
+    Decoupled Visual Suspension: Spring compression and chassis body-roll are calculated strictly for visuals, preventing suspension feedback loops from destabilizing the core kinematic math.
+
+3. Automated Generation Pipeline: The "Math Oracle"
+
+Instead of relying on computationally heavy heuristic AI bots to "playtest" unseen tracks (which are slow and prone to false negatives), the game utilizes a pure mathematical evolutionary loop to curate track content autonomously in microseconds.
+
+Phase A: Contextual Track "DNA"
+Every track segment is defined by bounded variables (Radius, Bank Angle, Sweep Angle, Width, Elevation). The engine generates batches of variations. Crucially, generation is contextual: Segment B is mathematically generated based on the precise calculated Exit Velocity of Segment A.
+
+Phase B: Headless Analytical Validation
+Because the physics are mathematically deterministic, the engine acts as an oracle. It calculates the Maximum Theoretical Cornering Speed (v=μ⋅g⋅r​) at every meter of the spline. If the required deceleration delta between a 300km/h straightaway and an upcoming hairpin exceeds the car's maximum braking power, or if a jump gap exceeds the mathematical airborne trajectory, the track instantly fails.
+
+Phase C: The Fitness Function (Tension & Release)
+The engine grades passing tracks using a formula optimized for human psychology, preventing the algorithm from lazily "reward hacking" an endless flat circle:
+
+    Variance: The algorithm rewards high-G corners only if they are preceded by high-speed straightaways, forcing dynamic rhythm rather than monotonous curves.
+
+    Smoothness (Penalizing Jerk): The engine mathematically penalizes "Jerk" (the rate of change of acceleration, or C3 continuity) to prevent nauseating, jagged zig-zags.
+
+    The Thrill Bonus: Tracks requiring cornering speeds at the absolute mathematical limit of tire friction (forcing the player to initiate a perfect drift) receive a massive score multiplier.
+
+Phase D: Genetic Culling
+The top-scoring tracks are kept; their parameters are crossed-over and mutated to spawn a new, highly optimized generation.
+4. Track Assembly & Spatial Awareness
+
+Once the genetic algorithm produces a pool of highly rated segments, the engine stitches them together utilizing local smoothness and macro-spatial awareness to guarantee the track actually works in 3D space.
+
+    Macro-Spatial Partitioning (The Anti-Pretzel): Before generating physical geometry, the 3D world is divided into a coarse Voxel Grid. As the algorithm plots a path, it reserves voxels. If a new segment attempts to enter an occupied voxel (without designated vertical clearance), it is instantly culled, permanently solving global self-intersection.
+
+    Micro-Continuity (C1 & C2): To ensure physics remain stable during transitions, the engine enforces Tangent Matching (C1) and uses Euler Spirals for Curvature Interpolation (C2). This prevents the suspension from experiencing infinite instant forces when moving from a flat straight into a banked curve.
+
+    Native Meshing: To accelerate development and ensure collision/lighting stability, the game leverages the native engine's spline-sweeping tools (e.g., Unreal Engine Spline Meshes) rather than writing custom 3D mesh and UV generation logic at runtime.
+
+5. Development Roadmap: The "Fail Faster" Pipeline
+
+To minimize risk and ensure the team isn't building complex generation algorithms on top of unproven mechanics, production will follow a strictly linearized path:
+
+    Phase 1: The "Feel" Sandbox (Core Gameplay): Build the Kinematic Hybrid physics, drift mechanics, and the crucial Grounded to Airborne state transitions on one statically hand-modeled track. Perfection of the driving feel is a strict prerequisite for moving forward.
+
+    Phase 2: The Math Oracle (Validation Prototype): Build the analytical solver. Feed the hand-made track into it to prove the engine can accurately predict the maximum theoretical speed and braking zones mathematically, verifying it against human playthroughs.
+
+    Phase 3: Procedural Stitching (Geometry Assembly): Write the C1/C2 Euler spline code and Voxel Grid logic to stitch a few pre-made segments together, proving the engine can build continuous, non-intersecting tracks on the fly.
+
+    Phase 4: The Evolutionary Loop (Full Automation): Turn on the Genetic Algorithm to begin dynamically generating, evaluating, mutating, and stitching full track sequences automatically.

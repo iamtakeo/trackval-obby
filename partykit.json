@@ -1,0 +1,4 @@
+{
+  "name": "trackval-obby",
+  "main": "party/server.ts"
+}
