@@ -54,7 +54,8 @@ export class CartesianPhysics {
 
   private precomputeTrack() {
     const totalLength = this.track.getTotalLength();
-    const resolution = Math.max(100, Math.floor(totalLength / 2)); // Sample every ~2 units
+    // High resolution sampling (every ~0.2 units) to prevent physics jumpiness at high speeds
+    const resolution = Math.max(100, Math.floor(totalLength * 5)); 
     
     for (let i = 0; i <= resolution; i++) {
       const s = (i / resolution) * totalLength;
@@ -96,14 +97,17 @@ export class CartesianPhysics {
       // The track's physical UP vector is now exactly the normal
       const surfaceUp = { x: closestSample.normal.x, y: closestSample.normal.y, z: closestSample.normal.z };
       
-      // Calculate how far laterally we are from the center
-      // binormal is horizontal across the track
+      // Calculate exact surface height by intersecting the vertical line at (x, z) 
+      // with the plane defined by closestSample.pos and closestSample.normal
       const dx = x - closestSample.pos.x;
       const dz = z - closestSample.pos.z;
-      const lateralDot = dx * closestSample.binormal.x + dz * closestSample.binormal.z;
       
-      // The exact surface height accounts for banking
-      const exactY = closestSample.pos.y + lateralDot * closestSample.binormal.y;
+      // Plane equation: nx*(x-px) + ny*(y-py) + nz*(z-pz) = 0
+      // Solve for y:
+      let exactY = closestSample.pos.y;
+      if (Math.abs(closestSample.normal.y) > 0.001) {
+          exactY = closestSample.pos.y - (closestSample.normal.x * dx + closestSample.normal.z * dz) / closestSample.normal.y;
+      }
 
       return {
         onTrack: true,
