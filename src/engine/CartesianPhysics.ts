@@ -70,49 +70,75 @@ export class CartesianPhysics {
 
   private getClosestTrackSurface(x: number, y: number, z: number): { onTrack: boolean, surfaceY: number, normal: Vector3 } {
     let minDistSq = Infinity;
-    let closestSample = this.trackSamples[0];
+    let closestIdx = 0;
 
-    // Find the closest point in 3D space to prevent falling through bridges!
-    for (const sample of this.trackSamples) {
+    // 1. Find the closest discrete sample
+    for (let i = 0; i < this.trackSamples.length; i++) {
+      const sample = this.trackSamples[i];
       const dx = sample.pos.x - x;
       const dy = sample.pos.y - y;
       const dz = sample.pos.z - z;
       
-      // We weight Y distance less heavily so we don't snap to an adjacent track if we jump high
-      // But we still need Y to differentiate overpass vs underpass.
       const distSq = dx * dx + (dy * dy * 0.1) + dz * dz; 
       if (distSq < minDistSq) {
         minDistSq = distSq;
-        closestSample = sample;
+        closestIdx = i;
       }
     }
 
-    // Recalculate true 2D distance for the track bounds check
-    const dx2d = closestSample.pos.x - x;
-    const dz2d = closestSample.pos.z - z;
+    // 2. Find the closest neighbor for continuous interpolation
+    let neighborIdx = closestIdx;
+    if (closestIdx === 0) {
+      neighborIdx = 1;
+    } else if (closestIdx === this.trackSamples.length - 1) {
+      neighborIdx = closestIdx - 1;
+    } else {
+      const prev = this.trackSamples[closestIdx - 1];
+      const next = this.trackSamples[closestIdx + 1];
+      const dPrev = Math.pow(prev.pos.x - x, 2) + Math.pow(prev.pos.z - z, 2);
+      const dNext = Math.pow(next.pos.x - x, 2) + Math.pow(next.pos.z - z, 2);
+      neighborIdx = dPrev < dNext ? closestIdx - 1 : closestIdx + 1;
+    }
+
+    const p1 = this.trackSamples[closestIdx];
+    const p2 = this.trackSamples[neighborIdx];
+
+    // 3. Project car position onto the line segment between p1 and p2
+    const segX = p2.pos.x - p1.pos.x;
+    const segY = p2.pos.y - p1.pos.y;
+    const segZ = p2.pos.z - p1.pos.z;
+    const segLenSq = segX * segX + segY * segY + segZ * segZ;
+    
+    let t = 0;
+    if (segLenSq > 0.0001) {
+      const dot = (x - p1.pos.x) * segX + (y - p1.pos.y) * segY * 0.1 + (z - p1.pos.z) * segZ;
+      t = Math.max(0, Math.min(1, dot / segLenSq));
+    }
+
+    // 4. Calculate the exact, continuous S value
+    const exactS = p1.s + t * (p2.s - p1.s);
+
+    // 5. Query the track geometry for perfectly smooth vectors at exactS
+    const smoothPos = this.track.getCartesian(exactS, 0);
+    const smoothNormal = this.track.getNormal(exactS);
+
+    const dx2d = smoothPos.x - x;
+    const dz2d = smoothPos.z - z;
     const dist2d = Math.sqrt(dx2d * dx2d + dz2d * dz2d);
 
-    // If we are within the track width, compute the exact surface Y using the binormal
-    if (dist2d <= this.trackWidth / 2 + 1.0) { // 1.0 margin of error
-      // The track's physical UP vector is now exactly the normal
-      const surfaceUp = { x: closestSample.normal.x, y: closestSample.normal.y, z: closestSample.normal.z };
+    if (dist2d <= this.trackWidth / 2 + 1.0) {
+      const dxPlane = x - smoothPos.x;
+      const dzPlane = z - smoothPos.z;
       
-      // Calculate exact surface height by intersecting the vertical line at (x, z) 
-      // with the plane defined by closestSample.pos and closestSample.normal
-      const dx = x - closestSample.pos.x;
-      const dz = z - closestSample.pos.z;
-      
-      // Plane equation: nx*(x-px) + ny*(y-py) + nz*(z-pz) = 0
-      // Solve for y:
-      let exactY = closestSample.pos.y;
-      if (Math.abs(closestSample.normal.y) > 0.001) {
-          exactY = closestSample.pos.y - (closestSample.normal.x * dx + closestSample.normal.z * dz) / closestSample.normal.y;
+      let exactY = smoothPos.y;
+      if (Math.abs(smoothNormal.y) > 0.001) {
+          exactY = smoothPos.y - (smoothNormal.x * dxPlane + smoothNormal.z * dzPlane) / smoothNormal.y;
       }
 
       return {
         onTrack: true,
         surfaceY: exactY,
-        normal: surfaceUp // We return the surface UP vector
+        normal: smoothNormal
       };
     }
 
