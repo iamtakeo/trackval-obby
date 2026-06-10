@@ -27,8 +27,9 @@ function validateTrackOrientation() {
       steps: 100,
       bevelEnabled: false, // Turn off bevel to simplify normal analysis
       extrudePath: trackData.curve,
-      frames: trackData.frames
     };
+
+    trackData.curve.computeFrenetFrames = () => trackData.frames;
 
     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     geometry.computeVertexNormals();

@@ -28,8 +28,12 @@ export function TrackMesh({ trackData }: TrackMeshProps) {
       bevelSize: 0.2,
       bevelThickness: 0.2,
       extrudePath: trackData.curve,
-      frames: trackData.frames
     } as any;
+
+    // ExtrudeGeometry completely ignores the `frames` property in modern Three.js,
+    // and calculates its own un-banked FrenetFrames internally.
+    // By overriding the method on the curve instance, we force it to use our custom banked frames!
+    trackData.curve.computeFrenetFrames = () => trackData.frames;
 
     const trackGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
 
