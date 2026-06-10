@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import MainMenu from './ui/MainMenu';
 import HUD from './ui/HUD';
+import { GeneratorMenu } from './ui/GeneratorMenu';
 import { Renderer } from './components/Renderer';
 import './index.css';
 
@@ -19,7 +20,10 @@ function App() {
           <MainMenu onPlay={() => setGameState('playing')} />
         )}
         {gameState === 'playing' && (
-          <HUD />
+          <>
+            <HUD />
+            <GeneratorMenu />
+          </>
         )}
       </div>
     </div>

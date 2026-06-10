@@ -1,16 +1,22 @@
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { Sky, Environment, Plane } from '@react-three/drei';
-import { generateTrackCurve } from '../utils/trackGenerator';
 import { TrackMesh } from './TrackMesh';
 import { CarMesh } from './CarMesh';
 import { OtherPlayers } from './OtherPlayers';
 import { useMultiplayer } from '../hooks/useMultiplayer';
+import { gameStore } from '../store';
 
 export function Renderer() {
-  // Generate the procedural track DNA only once
-  const curve = useMemo(() => generateTrackCurve(), []);
+  const [curve, setCurve] = useState<THREE.CatmullRomCurve3 | null>(gameStore.getTrackCurve());
+
+  useEffect(() => {
+    const unsubscribe = gameStore.subscribe(() => {
+      setCurve(gameStore.getTrackCurve());
+    });
+    return unsubscribe;
+  }, []);
   
   // Hook up multiplayer
   const { players, updateMyState } = useMultiplayer();
@@ -39,14 +45,14 @@ export function Renderer() {
         />
         <ambientLight intensity={0.4} />
         
-        {/* Ground Plane far below */}
-        <Plane args={[10000, 10000]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -100, 0]} receiveShadow>
+        {/* Ground Plane at Y = 0 */}
+        <Plane args={[10000, 10000]} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
           <meshStandardMaterial color="#3b7a33" roughness={0.8} />
         </Plane>
         
         {/* Game Entities */}
-        <TrackMesh curve={curve} />
-        <CarMesh curve={curve} updateMyState={updateMyState} />
+        {curve && <TrackMesh curve={curve} />}
+        {curve && <CarMesh curve={curve} updateMyState={updateMyState} />}
         <OtherPlayers players={players} />
       </Canvas>
     </div>
