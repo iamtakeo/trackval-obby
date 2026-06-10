@@ -1,12 +1,23 @@
 import { generateTrackCurve } from './utils/trackGenerator';
 import type { TrackData } from './utils/trackGenerator';
+import type { CartesianCapabilities } from './engine/CartesianPhysics';
 
 type Listener = () => void;
+
+export const defaultCarCapabilities: CartesianCapabilities = {
+  maxAcceleration: 40,
+  maxBraking: 60,
+  maxVelocity: 150,
+  maxLateralG: 40,
+  steeringSensitivity: 0.015,
+  gravity: 50
+};
 
 class GameStore {
   private speed = 0;
   private trackData: TrackData | null = null;
   private isMenuOpen = false;
+  private carParameters: CartesianCapabilities = { ...defaultCarCapabilities };
   private listeners = new Set<Listener>();
 
   constructor() {
@@ -38,6 +49,13 @@ class GameStore {
   }
 
   getMenuOpen = () => this.isMenuOpen;
+
+  setCarParameters(params: Partial<CartesianCapabilities>) {
+    this.carParameters = { ...this.carParameters, ...params };
+    this.emit();
+  }
+
+  getCarParameters = () => this.carParameters;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);

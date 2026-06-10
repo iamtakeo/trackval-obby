@@ -1,9 +1,9 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useKeyboardControls } from '../hooks/useKeyboardControls';
 import { CartesianPhysics } from '../engine/CartesianPhysics';
-import type { CartesianState, CartesianCapabilities, TrackGeometry } from '../engine/CartesianPhysics';
+import type { CartesianState, TrackGeometry } from '../engine/CartesianPhysics';
 import type { Player } from '../hooks/useMultiplayer';
 import type { TrackData } from '../utils/trackGenerator';
 import { gameStore } from '../store';
@@ -79,19 +79,18 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
   const lookAheadPos = useMemo(() => new THREE.Vector3(), []);
   const lastBroadcast = useRef(0);
 
+  const carParams = useSyncExternalStore(gameStore.subscribe, gameStore.getCarParameters);
+
   const physics = useMemo(() => {
     const trackAdapter = new CartesianTrackAdapter(trackData.curve, trackData.frames);
-    
-    const capabilities: CartesianCapabilities = {
-      maxAcceleration: 40, 
-      maxBraking: 60,
-      maxVelocity: 150, 
-      maxLateralG: 40,
-      steeringSensitivity: 0.015, // Radian turn per meter traveled
-      gravity: 50 // m/s^2
-    };
-    return new CartesianPhysics(capabilities, trackAdapter);
+    // Use initial store parameters
+    return new CartesianPhysics({ ...gameStore.getCarParameters() }, trackAdapter);
   }, [trackData]);
+
+  // Instantly apply physics parameter changes
+  useEffect(() => {
+    physics.capabilities = { ...carParams };
+  }, [carParams, physics]);
 
   const getInitialState = (): CartesianState => {
     const startPos = physics.track.getCartesian(0, 0);
