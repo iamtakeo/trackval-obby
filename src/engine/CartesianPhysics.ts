@@ -215,9 +215,9 @@ export class CartesianPhysics {
       const dx = newState.position.x - ramp.position[0];
       const dz = newState.position.z - ramp.position[2];
       
-      // Inverse rotation to local space
-      const localX = dx * Math.cos(-ramp.rotation) - dz * Math.sin(-ramp.rotation);
-      const localZ = dx * Math.sin(-ramp.rotation) + dz * Math.cos(-ramp.rotation);
+      // Inverse rotation to local space (Transpose of Three.js Y-rotation matrix)
+      const localX = dx * Math.cos(ramp.rotation) - dz * Math.sin(ramp.rotation);
+      const localZ = dx * Math.sin(ramp.rotation) + dz * Math.cos(ramp.rotation);
       
       // Ramp bounding box
       if (localX >= -ramp.width / 2 && localX <= ramp.width / 2 && localZ >= 0 && localZ <= ramp.length) {
