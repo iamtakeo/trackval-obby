@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useSyncExternalStore } from 'react';
 import usePartySocket from 'partysocket/react';
 import { gameStore } from '../store';
 import { generateTrackCurve } from '../utils/trackGenerator';
@@ -15,7 +15,7 @@ const PARTY_HOST = "trackval-obby.iamtakeo.partykit.dev";
 const ROOM_ID = "trackval-global"; // For a global room
 
 export function useMultiplayer() {
-  const [players, setPlayers] = useState<Record<string, Player>>({});
+  const players = useSyncExternalStore(gameStore.subscribe, gameStore.getConnectedPlayers);
   const [isConnected, setIsConnected] = useState(false);
 
   const socket = usePartySocket({
@@ -30,7 +30,6 @@ export function useMultiplayer() {
 
         switch (data.type) {
           case 'sync':
-            setPlayers(data.players);
             gameStore.setConnectedPlayers(data.players);
             if (data.globalTrackDNA) {
               gameStore.setTrackData(generateTrackCurve({ dna: data.globalTrackDNA }));
@@ -49,40 +48,35 @@ export function useMultiplayer() {
                gameStore.setCarParameters(data.params);
             }
             break;
-          case 'join':
-            setPlayers((prev) => {
-              const newPlayers = { ...prev, [data.player.id]: data.player };
-              gameStore.setConnectedPlayers(newPlayers);
-              return newPlayers;
+          case 'join': {
+            const currentPlayers = gameStore.getConnectedPlayers();
+            gameStore.setConnectedPlayers({ ...currentPlayers, [data.player.id]: data.player });
+            break;
+          }
+          case 'update': {
+            const currentPlayers = gameStore.getConnectedPlayers();
+            const player = currentPlayers[data.id];
+            if (!player) break;
+            
+            gameStore.setConnectedPlayers({
+              ...currentPlayers,
+              [data.id]: {
+                ...player,
+                position: data.position || player.position,
+                rotation: data.rotation || player.rotation,
+                color: data.color || player.color,
+                name: data.name || player.name
+              }
             });
             break;
-          case 'update':
-            setPlayers((prev) => {
-              const player = prev[data.id];
-              if (!player) return prev;
-              
-              const newPlayers = {
-                ...prev,
-                [data.id]: {
-                  ...player,
-                  position: data.position || player.position,
-                  rotation: data.rotation || player.rotation,
-                  color: data.color || player.color,
-                  name: data.name || player.name
-                }
-              };
-              gameStore.setConnectedPlayers(newPlayers);
-              return newPlayers;
-            });
+          }
+          case 'leave': {
+            const currentPlayers = gameStore.getConnectedPlayers();
+            const newPlayers = { ...currentPlayers };
+            delete newPlayers[data.id];
+            gameStore.setConnectedPlayers(newPlayers);
             break;
-          case 'leave':
-            setPlayers((prev) => {
-              const newPlayers = { ...prev };
-              delete newPlayers[data.id];
-              gameStore.setConnectedPlayers(newPlayers);
-              return newPlayers;
-            });
-            break;
+          }
         }
       } catch (err) {
         console.error("Failed to parse partykit message", err);
