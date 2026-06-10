@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Stars } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { Sky, Environment, Plane } from '@react-three/drei';
 import { generateTrackCurve } from '../utils/trackGenerator';
 import { TrackMesh } from './TrackMesh';
 import { CarMesh } from './CarMesh';
@@ -13,31 +12,31 @@ export function Renderer() {
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <Canvas
-        gl={{ antialias: false }} // Optimization for postprocessing
         camera={{ position: [0, 10, 20], fov: 75 }}
+        shadows
       >
-        {/* Dark deep-space aesthetic background */}
-        <color attach="background" args={['#030308']} />
+        {/* Skybox and environmental lighting */}
+        <Sky distance={450000} sunPosition={[100, 20, 100]} inclination={0} azimuth={0.25} />
+        <Environment preset="park" />
         
-        {/* Lighting */}
-        <ambientLight intensity={0.3} color="#ffffff" />
-        <directionalLight position={[100, 200, 100]} intensity={2} color="#e0eaff" />
+        {/* Direct sunlight for shadows */}
+        <directionalLight 
+          position={[100, 200, 100]} 
+          intensity={1.5} 
+          castShadow 
+          shadow-mapSize-width={2048} 
+          shadow-mapSize-height={2048} 
+        />
+        <ambientLight intensity={0.4} />
         
-        {/* Starfield backdrop */}
-        <Stars radius={200} depth={50} count={8000} factor={4} saturation={1} fade speed={1.5} />
+        {/* Ground Plane far below */}
+        <Plane args={[10000, 10000]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -100, 0]} receiveShadow>
+          <meshStandardMaterial color="#3b7a33" roughness={0.8} />
+        </Plane>
         
         {/* Game Entities */}
         <TrackMesh curve={curve} />
         <CarMesh curve={curve} />
-
-        {/* Post-processing effects for high-speed arcade feel */}
-        <EffectComposer>
-          <Bloom 
-            luminanceThreshold={0.2} 
-            mipmapBlur 
-            intensity={1.5} 
-          />
-        </EffectComposer>
       </Canvas>
     </div>
   );

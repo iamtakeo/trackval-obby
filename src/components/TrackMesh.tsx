@@ -8,8 +8,8 @@ interface TrackMeshProps {
 export function TrackMesh({ curve }: TrackMeshProps) {
   const geometry = useMemo(() => {
     const shape = new THREE.Shape();
-    const width = 10;
-    const depth = 0.5;
+    const width = 12;
+    const depth = 1;
     
     shape.moveTo(-width / 2, -depth / 2);
     shape.lineTo(width / 2, -depth / 2);
@@ -19,7 +19,10 @@ export function TrackMesh({ curve }: TrackMeshProps) {
 
     const extrudeSettings: THREE.ExtrudeGeometryOptions = {
       steps: 400,
-      bevelEnabled: false,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      bevelSize: 0.2,
+      bevelThickness: 0.2,
       extrudePath: curve,
     };
 
@@ -28,22 +31,12 @@ export function TrackMesh({ curve }: TrackMeshProps) {
 
   return (
     <group>
-      {/* Dark metallic road surface */}
-      <mesh geometry={geometry}>
+      {/* Solid asphalt/concrete track */}
+      <mesh geometry={geometry} castShadow receiveShadow>
         <meshStandardMaterial 
-          color="#0f0f15" 
-          roughness={0.2} 
-          metalness={0.9} 
-        />
-      </mesh>
-      
-      {/* Cyberpunk neon wireframe overlay */}
-      <mesh geometry={geometry}>
-        <meshBasicMaterial 
-          color="#ff00ff" 
-          wireframe={true} 
-          transparent={true} 
-          opacity={0.2} 
+          color="#555555" 
+          roughness={0.9} 
+          metalness={0.1} 
         />
       </mesh>
     </group>
