@@ -1,5 +1,7 @@
 
 
+import { defaultRamps } from '../utils/rampData';
+
 export type Vector3 = { x: number; y: number; z: number };
 
 export interface CartesianState {
@@ -207,6 +209,34 @@ export class CartesianPhysics {
     // We also check the ground plane at y = 0
     let targetSurfaceY = 0;
     let targetNormal = { x: 0, y: 1, z: 0 };
+    
+    // Check ramps
+    for (const ramp of defaultRamps) {
+      const dx = newState.position.x - ramp.position[0];
+      const dz = newState.position.z - ramp.position[2];
+      
+      // Inverse rotation to local space
+      const localX = dx * Math.cos(-ramp.rotation) - dz * Math.sin(-ramp.rotation);
+      const localZ = dx * Math.sin(-ramp.rotation) + dz * Math.cos(-ramp.rotation);
+      
+      // Ramp bounding box
+      if (localX >= -ramp.width / 2 && localX <= ramp.width / 2 && localZ >= 0 && localZ <= ramp.length) {
+         const rampY = ramp.position[1] + (localZ / ramp.length) * ramp.height;
+         // Only apply if the car is physically near or above the surface
+         if (rampY > targetSurfaceY && newState.position.y >= rampY - 2.0) {
+            targetSurfaceY = rampY;
+            const slope = Math.atan2(ramp.height, ramp.length);
+            const normalLocalY = Math.cos(slope);
+            const normalLocalZ = -Math.sin(slope); // Tilt backwards along local Z
+            
+            targetNormal = {
+               x: normalLocalZ * Math.sin(ramp.rotation),
+               y: normalLocalY,
+               z: normalLocalZ * Math.cos(ramp.rotation)
+            };
+         }
+      }
+    }
     
     if (surfaceInfo.onTrack && newState.position.y >= surfaceInfo.surfaceY - 2.0) {
       // Car is above or slightly below track surface (allow small margin for snapping)

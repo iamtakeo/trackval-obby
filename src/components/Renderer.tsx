@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { Sky, Environment, Plane } from '@react-three/drei';
 import { TrackMesh } from './TrackMesh';
+import { RampsMesh } from './RampsMesh';
 import { CarMesh } from './CarMesh';
 import { OtherPlayers } from './OtherPlayers';
 import { useMultiplayer } from '../hooks/useMultiplayer';
@@ -52,6 +53,7 @@ export function Renderer() {
         </Plane>
         
         {/* Game Entities */}
+        <RampsMesh />
         {trackData && <TrackMesh trackData={trackData} />}
         {trackData && <CarMesh trackData={trackData} updateMyState={updateMyState} />}
         <OtherPlayers players={players} />
