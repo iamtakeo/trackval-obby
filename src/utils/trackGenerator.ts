@@ -15,8 +15,13 @@ export function generateTrackCurve(): THREE.CatmullRomCurve3 {
   // 2. Use the Math Oracle to convert DNA into physical 3D SplinePoints
   const splinePoints = MathOracle.generateSpline(bestDna, 5);
 
-  // 3. Map the generated points to THREE.Vector3 for the CatmullRomCurve3
-  const vectors = splinePoints.map(sp => new THREE.Vector3(sp.position[0], sp.position[1], sp.position[2]));
+  // MathOracle uses Z for elevation and X/Y for the 2D layout.
+  // Three.js uses Y for elevation and X/Z for the 2D plane.
+  const vectors = splinePoints.map(sp => new THREE.Vector3(
+    sp.position[0],  // X -> X
+    sp.position[2],  // Z (elevation) -> Y
+    -sp.position[1]  // Y (2D layout) -> -Z
+  ));
 
   // Ensure it loops back roughly
   vectors.push(vectors[0].clone());
