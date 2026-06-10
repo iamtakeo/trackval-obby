@@ -5,7 +5,7 @@ import { useMultiplayer } from '../hooks/useMultiplayer';
 import type { CartesianCapabilities } from '../engine/CartesianPhysics';
 
 export function GeneratorMenu() {
-  const { broadcastTrack, broadcastParams } = useMultiplayer();
+  const { broadcastTrack, broadcastParams, isConnected } = useMultiplayer();
   const [isOpen, setIsOpen] = useState(gameStore.getMenuOpen());
   const [currentMenu, setCurrentMenu] = useState<'main' | 'generator' | 'parameters' | 'players'>('main');
   
@@ -244,10 +244,27 @@ export function GeneratorMenu() {
           <div style={{...cardStyle, boxShadow: '0 0 40px rgba(0, 255, 170, 0.1)'}}>
             <h2 style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#00ffaa' }}>Connected Players</h2>
             
+            <div style={{ marginBottom: '20px', padding: '10px', background: 'rgba(0, 0, 0, 0.5)', borderRadius: '8px', fontSize: '12px', color: '#aaa', border: '1px solid #333' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span>Server:</span> <strong style={{ color: '#00e5ff' }}>trackval-obby.iamtakeo.partykit.dev</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span>Room ID:</span> <strong style={{ color: '#00e5ff' }}>trackval-global</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Status:</span> 
+                {isConnected ? (
+                  <strong style={{ color: '#00ffaa' }}>Connected</strong>
+                ) : (
+                  <strong style={{ color: '#ffaa00' }}>Connecting...</strong>
+                )}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto', marginBottom: '20px' }}>
               <div style={{ padding: '12px', background: 'rgba(0, 255, 170, 0.1)', border: '1px solid #00ffaa', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
                 <strong style={{ color: '#00ffaa' }}>{myName} (You)</strong>
-                <span style={{ fontSize: '12px', opacity: 0.7 }}>Host</span>
+                <span style={{ fontSize: '12px', opacity: 0.7 }}>Local</span>
               </div>
               
               {Object.values(connectedPlayers).map((p: any) => (
