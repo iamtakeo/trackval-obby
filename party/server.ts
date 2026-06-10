@@ -28,10 +28,16 @@ export default class TrackvalServer implements Party.Server {
     };
     this.players.set(conn.id, newPlayer);
 
+    // Safely convert Map to Object for JSON serialization
+    const playersObj: Record<string, Player> = {};
+    for (const [key, val] of this.players.entries()) {
+      playersObj[key] = val;
+    }
+
     // Send current state of all players and the global world state
     conn.send(JSON.stringify({
       type: "sync",
-      players: Object.fromEntries(this.players),
+      players: playersObj,
       globalTrackDNA: this.globalTrackDNA,
       globalCarParams: this.globalCarParams
     }));

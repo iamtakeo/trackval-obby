@@ -5,7 +5,7 @@ import { useMultiplayer } from '../hooks/useMultiplayer';
 import type { CartesianCapabilities } from '../engine/CartesianPhysics';
 
 export function GeneratorMenu() {
-  const { broadcastTrack, broadcastParams, isConnected } = useMultiplayer();
+  const { broadcastTrack, broadcastParams, isConnected, socketId } = useMultiplayer();
   const [isOpen, setIsOpen] = useState(gameStore.getMenuOpen());
   const [currentMenu, setCurrentMenu] = useState<'main' | 'generator' | 'parameters' | 'players'>('main');
   
@@ -267,13 +267,15 @@ export function GeneratorMenu() {
                 <span style={{ fontSize: '12px', opacity: 0.7 }}>Local</span>
               </div>
               
-              {Object.values(connectedPlayers).map((p: any) => (
+              {Object.values(connectedPlayers)
+                .filter((p: any) => p.id !== socketId)
+                .map((p: any) => (
                 <div key={p.id} style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid #444', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
                   <span>{p.name || 'Ghost Driver'}</span>
                 </div>
               ))}
               
-              {Object.keys(connectedPlayers).length === 0 && (
+              {Object.keys(connectedPlayers).length <= 1 && (
                 <div style={{ textAlign: 'center', color: '#888', padding: '20px 0' }}>
                   No one else is here yet.
                 </div>

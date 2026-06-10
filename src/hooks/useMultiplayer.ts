@@ -118,6 +118,7 @@ export function useMultiplayer() {
     broadcastTrack,
     broadcastParams,
     isConnected,
-    socket
+    socket,
+    socketId: socket?.id
   };
 }
