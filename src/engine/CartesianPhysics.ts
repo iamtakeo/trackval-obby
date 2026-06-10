@@ -129,11 +129,19 @@ export class CartesianPhysics {
     newState.forwardSpeed = Math.max(-this.capabilities.maxVelocity * 0.2, Math.min(newState.forwardSpeed, this.capabilities.maxVelocity));
 
     // 2. Steering
-    // The car can only turn if it is moving.
-    const turnRadiusEffect = newState.forwardSpeed * this.capabilities.steeringSensitivity;
+    // The car can turn if it is moving. We add a minimum effective speed so low-speed turning isn't sluggish.
+    let effectiveSpeedForSteering = Math.abs(newState.forwardSpeed);
+    if (effectiveSpeedForSteering > 0.1) {
+      effectiveSpeedForSteering = Math.max(effectiveSpeedForSteering, 60); // Minimum arcade turn rate
+    }
+    
+    // Reverse steering direction if driving backwards
+    const direction = Math.sign(newState.forwardSpeed) >= 0 ? 1 : -1;
+    
+    const turnRadiusEffect = effectiveSpeedForSteering * this.capabilities.steeringSensitivity;
     // inputs.steering is -1 (Left) to 1 (Right).
     // In our 3D world, right turn means decreasing yaw angle (negative rotation around Y)
-    newState.heading -= inputs.steering * turnRadiusEffect * dt;
+    newState.heading -= inputs.steering * direction * turnRadiusEffect * dt;
 
     // 3. X/Z Movement
     // Heading 0 means pointing along positive Z? 
