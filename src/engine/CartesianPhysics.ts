@@ -255,7 +255,12 @@ export class CartesianPhysics {
     // Ground Collision
     if (newState.position.y <= targetSurfaceY) {
       newState.position.y = targetSurfaceY;
-      newState.verticalSpeed = 0;
+      
+      // Calculate the vertical velocity required to follow the slope.
+      // This ensures that when the car drives off a ramp, it retains its upward momentum!
+      const expectedVy = -(targetNormal.x * vx + targetNormal.z * vz) / Math.max(0.001, targetNormal.y);
+      newState.verticalSpeed = expectedVy;
+      
       newState.isGrounded = true;
       newState.surfaceNormal = targetNormal;
       
