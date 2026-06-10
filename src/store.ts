@@ -7,7 +7,7 @@ type Listener = () => void;
 export const defaultCarCapabilities: CartesianCapabilities = {
   maxAcceleration: 25,
   maxBraking: 60,
-  maxVelocity: 110,
+  maxVelocity: 70,
   maxLateralG: 40,
   steeringSensitivity: 0.015,
   gravity: 50

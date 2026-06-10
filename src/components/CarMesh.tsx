@@ -142,11 +142,17 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
     carRef.current.position.set(pos.x, pos.y + 0.75, pos.z); // hover offset
 
     // Apply heading
-    // The car should point along its heading vector
-    const headingDir = new THREE.Vector3(Math.sin(newState.heading), 0, Math.cos(newState.heading)).normalize();
+    // First, get the flat forward direction
+    const flatForward = new THREE.Vector3(Math.sin(newState.heading), 0, Math.cos(newState.heading)).normalize();
     
-    // We add the heading direction to the position to look at it
-    const lookAtPos = carRef.current.position.clone().add(headingDir);
+    // Project the flat forward direction onto the plane defined by the surface normal
+    // right = up x flatForward
+    const right = new THREE.Vector3().crossVectors(up, flatForward).normalize();
+    // true surface forward = right x up
+    const surfaceForward = new THREE.Vector3().crossVectors(right, up).normalize();
+    
+    // We add the surface forward direction to the position to look at it
+    const lookAtPos = carRef.current.position.clone().add(surfaceForward);
     carRef.current.lookAt(lookAtPos);
 
     // Camera logic
@@ -154,13 +160,13 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
     const heightAbove = 6;
     
     targetCameraPos.copy(carRef.current.position)
-      .sub(headingDir.clone().multiplyScalar(distanceBehind))
+      .sub(surfaceForward.clone().multiplyScalar(distanceBehind))
       .add(carRef.current.up.clone().multiplyScalar(heightAbove));
 
     camera.position.lerp(targetCameraPos, 1.0 - Math.exp(-5.0 * dt));
     camera.up.lerp(carRef.current.up, 1.0 - Math.exp(-3.0 * dt));
 
-    lookAheadPos.copy(carRef.current.position).add(headingDir.clone().multiplyScalar(40));
+    lookAheadPos.copy(carRef.current.position).add(surfaceForward.clone().multiplyScalar(40));
     camera.lookAt(lookAheadPos);
 
     // Network Broadcast
