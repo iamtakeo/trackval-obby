@@ -153,11 +153,11 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
     // First, get the flat forward direction
     const flatForward = new THREE.Vector3(Math.sin(newState.heading), 0, Math.cos(newState.heading)).normalize();
     
-    // Project the flat forward direction onto the plane defined by the surface normal
+    // Project the flat forward direction onto the plane defined by the interpolated surface normal
     // right = up x flatForward
-    const right = new THREE.Vector3().crossVectors(up, flatForward).normalize();
+    const right = new THREE.Vector3().crossVectors(carRef.current.up, flatForward).normalize();
     // true surface forward = right x up
-    const surfaceForward = new THREE.Vector3().crossVectors(right, up).normalize();
+    const surfaceForward = new THREE.Vector3().crossVectors(right, carRef.current.up).normalize();
     
     // We add the surface forward direction to the position to look at it
     const lookAtPos = carRef.current.position.clone().add(surfaceForward);
