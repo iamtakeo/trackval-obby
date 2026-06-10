@@ -127,7 +127,7 @@ export class CartesianPhysics {
     }
     
     if (inputs.handbrake && newState.isGrounded) {
-      accel -= Math.sign(newState.forwardSpeed) * this.capabilities.maxBraking * 0.8;
+      accel -= Math.sign(newState.forwardSpeed) * this.capabilities.maxBraking * 0.3;
     }
 
     // Apply drag based on velocity square
@@ -153,7 +153,7 @@ export class CartesianPhysics {
     let currentSensitivity = this.capabilities.steeringSensitivity;
     if (inputs.handbrake && Math.abs(newState.forwardSpeed) > 10) {
        // Handbrake drifting increases turn rate!
-       currentSensitivity *= 2.5; 
+       currentSensitivity *= 1.5; 
     }
     
     const turnRadiusEffect = effectiveSpeedForSteering * currentSensitivity;

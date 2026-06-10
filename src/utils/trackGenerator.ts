@@ -107,7 +107,8 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
 
     if (params.isClosed) {
       const numPoints = vectors.length;
-      if (numPoints > 1) {
+      if (numPoints > 20) {
+        // 1. Warp the track so the ends meet
         const firstPoint = vectors[0];
         const lastPoint = vectors[numPoints - 1];
         const offset = new THREE.Vector3().subVectors(firstPoint, lastPoint);
@@ -116,6 +117,27 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
           vectors[i].add(offset.clone().multiplyScalar(factor));
         }
         vectors[numPoints - 1].copy(vectors[0]);
+
+        // 2. Smooth out the kink at the seam by replacing the last section
+        // with a cubic bezier curve that blends gracefully into the starting tangent.
+        const smoothingPoints = Math.min(20, Math.floor(numPoints / 4));
+        const p0Index = numPoints - 1 - smoothingPoints;
+        const p0 = vectors[p0Index];
+        const p0Tangent = new THREE.Vector3().subVectors(vectors[p0Index], vectors[p0Index - 1]).normalize();
+        
+        const p3 = vectors[0];
+        const p3Tangent = new THREE.Vector3().subVectors(vectors[1], vectors[0]).normalize();
+        
+        const dist = p0.distanceTo(p3);
+        const p1 = p0.clone().add(p0Tangent.multiplyScalar(dist * 0.4));
+        const p2 = p3.clone().sub(p3Tangent.multiplyScalar(dist * 0.4));
+        
+        const bezier = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
+        const smoothSegment = bezier.getPoints(smoothingPoints);
+        
+        for (let i = 0; i <= smoothingPoints; i++) {
+           vectors[p0Index + i].copy(smoothSegment[i]);
+        }
       }
     }
 
