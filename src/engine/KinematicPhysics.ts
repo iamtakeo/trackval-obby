@@ -92,8 +92,8 @@ export class KinematicPhysics {
 
     // 2. Determine Lateral Acceleration (Steering)
     // Steering maps to a target lateral velocity, capped by maxLateralG
-    // Steering inputs are [-1, 1]. The car tries to reach a lateral velocity.
-    const targetUDot = inputs.steering * this.capabilities.maxVelocity * 0.2; // 20% of max speed laterally
+    // We invert steering because the track's binormal vector naturally points left
+    const targetUDot = -inputs.steering * this.capabilities.maxVelocity * 0.2; // 20% of max speed laterally
     const lateralAccelReq = (targetUDot - state.uDot) / dt;
     
     const maxLatAccel = this.capabilities.maxLateralG;

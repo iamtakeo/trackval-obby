@@ -132,6 +132,7 @@ export function CarMesh({ curve, updateMyState }: CarMeshProps) {
       const pos = physics.track.getCartesian(newState.s, newState.u) as THREE.Vector3;
       const tangent = physics.track.getTangent(newState.s) as THREE.Vector3;
       const normal = physics.track.getNormal(newState.s) as THREE.Vector3;
+      const binormal = physics.track.getBinormal(newState.s) as THREE.Vector3;
       
       // In Three.js computeFrenetFrames for a flat track, normal is vertical (-Y) and binormal is horizontal.
       // Therefore, the track's physical "Up" is the inverse of the normal.
@@ -143,8 +144,17 @@ export function CarMesh({ curve, updateMyState }: CarMeshProps) {
       // Set car position and slight hover offset ALONG the track up vector
       carRef.current.position.copy(pos).add(trackUp.clone().multiplyScalar(0.75));
 
-      // Orient the car to look forward along the tangent
-      lookAtPos.copy(carRef.current.position).add(tangent);
+      // Calculate true velocity vector for car rotation
+      // uDot moves along binormal, sDot moves along tangent
+      // We add a tiny baseline forward vector so it doesn't spin wildly when stopped
+      const forwardSpeed = Math.max(newState.sDot, 5); 
+      const velocityDir = tangent.clone()
+        .multiplyScalar(forwardSpeed)
+        .add(binormal.clone().multiplyScalar(newState.uDot))
+        .normalize();
+
+      // Orient the car to look along its true physical velocity vector (turning instead of strafing)
+      lookAtPos.copy(carRef.current.position).add(velocityDir);
       carRef.current.lookAt(lookAtPos);
 
       // Camera logic: Create a smooth "spring-arm" chase camera
