@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -21,6 +21,9 @@ export function CarMesh({ curve }: CarMeshProps) {
   const targetCameraPos = new THREE.Vector3();
   const lookAheadPos = new THREE.Vector3();
 
+  // Compute the track's mathematical orientation frames
+  const frenetFrames = useMemo(() => curve.computeFrenetFrames(400, false), [curve]);
+
   useFrame((_state, delta) => {
     if (!carRef.current) return;
 
@@ -32,16 +35,28 @@ export function CarMesh({ curve }: CarMeshProps) {
     }
     setProgress(nextProgress);
 
-    // Calculate current point and tangent
+    // Calculate current point
     curve.getPointAt(nextProgress, position);
-    curve.getTangentAt(nextProgress, tangent).normalize();
 
-    // Set car position and slight hover offset
-    carRef.current.position.copy(position);
-    carRef.current.position.y += 0.75; // Hover above track
+    // Interpolate Frenet Frames to find exact track orientation
+    const segments = frenetFrames.tangents.length - 1;
+    const index = nextProgress * segments;
+    const i = Math.floor(index);
+    const f = index - i;
+    const nextI = Math.min(i + 1, segments);
 
-    // Orient the car
-    lookAtPos.copy(position).add(tangent);
+    tangent.copy(frenetFrames.tangents[i]).lerp(frenetFrames.tangents[nextI], f).normalize();
+    const binormal = new THREE.Vector3().copy(frenetFrames.binormals[i]).lerp(frenetFrames.binormals[nextI], f).normalize();
+
+    // The ExtrudeGeometry maps its Y axis (the track thickness/top) to the curve's binormal.
+    // We align the car's 'up' vector to match the track's surface normal (binormal).
+    carRef.current.up.copy(binormal);
+
+    // Set car position and slight hover offset ALONG the binormal (track up vector)
+    carRef.current.position.copy(position).add(binormal.multiplyScalar(0.75));
+
+    // Orient the car to look forward along the tangent
+    lookAtPos.copy(carRef.current.position).add(tangent);
     carRef.current.lookAt(lookAtPos);
 
     // Chase camera setup (behind and above)
