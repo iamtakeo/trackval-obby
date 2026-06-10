@@ -66,27 +66,34 @@ export class CartesianPhysics {
     }
   }
 
-  private getClosestTrackSurface(x: number, z: number): { onTrack: boolean, surfaceY: number, normal: Vector3 } {
+  private getClosestTrackSurface(x: number, y: number, z: number): { onTrack: boolean, surfaceY: number, normal: Vector3 } {
     let minDistSq = Infinity;
     let closestSample = this.trackSamples[0];
 
-    // Find the closest point on the track center curve (ignoring Y to find overhead projection)
+    // Find the closest point in 3D space to prevent falling through bridges!
     for (const sample of this.trackSamples) {
       const dx = sample.pos.x - x;
+      const dy = sample.pos.y - y;
       const dz = sample.pos.z - z;
-      const distSq = dx * dx + dz * dz;
+      
+      // We weight Y distance less heavily so we don't snap to an adjacent track if we jump high
+      // But we still need Y to differentiate overpass vs underpass.
+      const distSq = dx * dx + (dy * dy * 0.1) + dz * dz; 
       if (distSq < minDistSq) {
         minDistSq = distSq;
         closestSample = sample;
       }
     }
 
-    const dist = Math.sqrt(minDistSq);
+    // Recalculate true 2D distance for the track bounds check
+    const dx2d = closestSample.pos.x - x;
+    const dz2d = closestSample.pos.z - z;
+    const dist2d = Math.sqrt(dx2d * dx2d + dz2d * dz2d);
 
     // If we are within the track width, compute the exact surface Y using the binormal
-    if (dist <= this.trackWidth / 2 + 1.0) { // 1.0 margin of error
-      // The track's physical UP vector is the inverse of the normal
-      const surfaceUp = { x: -closestSample.normal.x, y: -closestSample.normal.y, z: -closestSample.normal.z };
+    if (dist2d <= this.trackWidth / 2 + 1.0) { // 1.0 margin of error
+      // The track's physical UP vector is now exactly the normal
+      const surfaceUp = { x: closestSample.normal.x, y: closestSample.normal.y, z: closestSample.normal.z };
       
       // Calculate how far laterally we are from the center
       // binormal is horizontal across the track
@@ -104,7 +111,7 @@ export class CartesianPhysics {
       };
     }
 
-    return { onTrack: false, surfaceY: -100, normal: { x: 0, y: 1, z: 0 } };
+    return { onTrack: false, surfaceY: 0, normal: { x: 0, y: 1, z: 0 } };
   }
 
   step(dt: number, state: CartesianState, inputs: CarInputs): CartesianState {
@@ -154,10 +161,10 @@ export class CartesianPhysics {
     newState.position.z += vz * dt;
 
     // 4. Track Collision & Gravity
-    const surfaceInfo = this.getClosestTrackSurface(newState.position.x, newState.position.z);
+    const surfaceInfo = this.getClosestTrackSurface(newState.position.x, newState.position.y, newState.position.z);
     
-    // We also check the ground plane at y = -100
-    let targetSurfaceY = -100;
+    // We also check the ground plane at y = 0
+    let targetSurfaceY = 0;
     let targetNormal = { x: 0, y: 1, z: 0 };
     
     if (surfaceInfo.onTrack && newState.position.y >= surfaceInfo.surfaceY - 2.0) {

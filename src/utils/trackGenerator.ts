@@ -104,8 +104,6 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
       -sp.position[1]
     ));
 
-    vectors.push(vectors[0].clone());
-
     let minY = Infinity;
     for (const v of vectors) {
       if (v.y < minY) minY = v.y;
@@ -116,7 +114,7 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
       v.y += yOffset;
     }
 
-    const curve = new THREE.CatmullRomCurve3(vectors, true, 'centripetal', 0.5);
+    const curve = new THREE.CatmullRomCurve3(vectors, false, 'centripetal', 0.5);
     const frames = computeFixedUpFrames(curve, 400);
     
     return { curve, frames }; 
@@ -127,9 +125,9 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
     new THREE.Vector3(50, 10, 50),
     new THREE.Vector3(100, 10, 0),
     new THREE.Vector3(50, 10, -50),
-    new THREE.Vector3(0, 10, 0)
+    new THREE.Vector3(0, 10, -100)
   ];
-  const fallbackCurve = new THREE.CatmullRomCurve3(flatVectors, true, 'centripetal', 0.5);
+  const fallbackCurve = new THREE.CatmullRomCurve3(flatVectors, false, 'centripetal', 0.5);
   const frames = computeFixedUpFrames(fallbackCurve, 400);
 
   return { curve: fallbackCurve, frames, failureReason: lastFailureReason };
