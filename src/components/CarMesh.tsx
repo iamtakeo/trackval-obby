@@ -137,9 +137,17 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
     const pos = newState.position;
     const up = new THREE.Vector3(newState.surfaceNormal.x, newState.surfaceNormal.y, newState.surfaceNormal.z);
     
-    // Set up vector and position
-    carRef.current.up.lerp(up, 1.0 - Math.exp(-10.0 * dt));
-    carRef.current.position.set(pos.x, pos.y + 0.75, pos.z); // hover offset
+    // Set up vector (softened lerp for smoother orientation transitions)
+    carRef.current.up.lerp(up, 1.0 - Math.exp(-6.0 * dt));
+    
+    // Simulate suspension by only lerping the Y coordinate, keeping XZ perfectly synced with physics
+    carRef.current.position.x = pos.x;
+    carRef.current.position.z = pos.z;
+    carRef.current.position.y = THREE.MathUtils.lerp(
+      carRef.current.position.y, 
+      pos.y + 0.75, // target hover offset
+      1.0 - Math.exp(-15.0 * dt)
+    );
 
     // Apply heading
     // First, get the flat forward direction
