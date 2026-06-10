@@ -5,6 +5,7 @@ import type { CartesianCapabilities } from '../engine/CartesianPhysics';
 
 export function GeneratorMenu() {
   const [isOpen, setIsOpen] = useState(gameStore.getMenuOpen());
+  const [currentMenu, setCurrentMenu] = useState<'main' | 'generator' | 'parameters'>('main');
   
   const [segments, setSegments] = useState(15);
   const [generations, setGenerations] = useState(20);
@@ -17,7 +18,9 @@ export function GeneratorMenu() {
 
   useEffect(() => {
     return gameStore.subscribe(() => {
-      setIsOpen(gameStore.getMenuOpen());
+      const open = gameStore.getMenuOpen();
+      setIsOpen(open);
+      if (!open) setCurrentMenu('main'); // reset menu when closed
     });
   }, []);
 
@@ -70,6 +73,20 @@ export function GeneratorMenu() {
   };
 
   const labelStyle = { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' };
+  
+  const buttonStyle = {
+    width: '400px',
+    padding: '16px',
+    background: '#1a1a1a',
+    border: '1px solid #555',
+    color: '#fff',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    marginBottom: '15px',
+    fontSize: '16px',
+    transition: 'all 0.2s'
+  };
 
   return (
     <div style={{
@@ -90,123 +107,128 @@ export function GeneratorMenu() {
       overflowY: 'auto',
       padding: '40px 0'
     }}>
+      <h1 style={{ marginBottom: '40px', color: '#00e5ff', textShadow: '0 0 10px rgba(0, 229, 255, 0.5)' }}>Pause Menu</h1>
       
-      {/* Track Generator Card */}
-      <div style={cardStyle}>
-        <h2 style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#00e5ff' }}>Track Generator</h2>
-        
-        <div style={{ marginBottom: '20px' }}>
-          <label style={labelStyle}>
-            <span>Track Length (Segments)</span>
-            <span style={{ color: '#00e5ff' }}>{segments}</span>
-          </label>
-          <input 
-            type="range" min="5" max="50" value={segments} 
-            onChange={e => setSegments(parseInt(e.target.value))}
-            style={{ width: '100%' }}
-          />
+      {currentMenu === 'main' && (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <button style={buttonStyle} onClick={() => setCurrentMenu('generator')} onMouseOver={e => e.currentTarget.style.borderColor = '#00e5ff'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Track Generator</button>
+          <button style={buttonStyle} onClick={() => setCurrentMenu('parameters')} onMouseOver={e => e.currentTarget.style.borderColor = '#ff0055'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Car Parameters</button>
+          <button style={{ ...buttonStyle, background: 'transparent', borderColor: '#888' }} onClick={() => gameStore.setMenuOpen(false)}>Resume Game</button>
         </div>
+      )}
 
-        <div style={{ marginBottom: '30px' }}>
-          <label style={labelStyle}>
-            <span>Evolution Generations</span>
-            <span style={{ color: '#00e5ff' }}>{generations}</span>
-          </label>
-          <input 
-            type="range" min="5" max="100" value={generations} 
-            onChange={e => setGenerations(parseInt(e.target.value))}
-            style={{ width: '100%' }}
-          />
-        </div>
+      {currentMenu === 'generator' && (
+        <>
+          <div style={cardStyle}>
+            <h2 style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#00e5ff' }}>Track Generator</h2>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={labelStyle}>
+                <span>Track Length (Segments)</span>
+                <span style={{ color: '#00e5ff' }}>{segments}</span>
+              </label>
+              <input 
+                type="range" min="5" max="50" value={segments} 
+                onChange={e => setSegments(parseInt(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
 
-        <div style={{ marginBottom: '30px' }}>
-          <label style={{ ...labelStyle, alignItems: 'center', cursor: 'pointer' }}>
-            <span>Closed Loop Track</span>
-            <input 
-              type="checkbox" 
-              checked={isClosed}
-              onChange={e => setIsClosed(e.target.checked)}
-              style={{ width: '20px', height: '20px', accentColor: '#00e5ff' }}
-            />
-          </label>
-        </div>
+            <div style={{ marginBottom: '30px' }}>
+              <label style={labelStyle}>
+                <span>Evolution Generations</span>
+                <span style={{ color: '#00e5ff' }}>{generations}</span>
+              </label>
+              <input 
+                type="range" min="5" max="100" value={generations} 
+                onChange={e => setGenerations(parseInt(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
 
-        {errorMsg && (
-          <div style={{ 
-            background: 'rgba(255, 50, 50, 0.1)', border: '1px solid #ff3232', 
-            padding: '10px', borderRadius: '8px', marginBottom: '20px',
-            fontSize: '14px', color: '#ffaaaa'
-          }}>
-            <strong>Validation Failed:</strong> {errorMsg}
+            <div style={{ marginBottom: '30px' }}>
+              <label style={{ ...labelStyle, alignItems: 'center', cursor: 'pointer' }}>
+                <span>Closed Loop Track</span>
+                <input 
+                  type="checkbox" 
+                  checked={isClosed}
+                  onChange={e => setIsClosed(e.target.checked)}
+                  style={{ width: '20px', height: '20px', accentColor: '#00e5ff' }}
+                />
+              </label>
+            </div>
+
+            {errorMsg && (
+              <div style={{ 
+                background: 'rgba(255, 50, 50, 0.1)', border: '1px solid #ff3232', 
+                padding: '10px', borderRadius: '8px', marginBottom: '20px',
+                fontSize: '14px', color: '#ffaaaa'
+              }}>
+                <strong>Validation Failed:</strong> {errorMsg}
+              </div>
+            )}
+
+            <button 
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              style={{
+                width: '100%', padding: '12px', background: isGenerating ? '#333' : '#00e5ff',
+                border: 'none', color: isGenerating ? '#888' : '#000', borderRadius: '8px',
+                cursor: isGenerating ? 'not-allowed' : 'pointer', fontWeight: 'bold',
+                transition: 'background 0.2s'
+              }}
+            >
+              {isGenerating ? 'Generating & Validating...' : 'Generate New Track'}
+            </button>
           </div>
-        )}
+          <button style={{ ...buttonStyle, background: 'transparent' }} onClick={() => setCurrentMenu('main')}>Back</button>
+        </>
+      )}
 
-        <button 
-          onClick={handleGenerate}
-          disabled={isGenerating}
-          style={{
-            width: '100%', padding: '12px', background: isGenerating ? '#333' : '#00e5ff',
-            border: 'none', color: isGenerating ? '#888' : '#000', borderRadius: '8px',
-            cursor: isGenerating ? 'not-allowed' : 'pointer', fontWeight: 'bold',
-            transition: 'background 0.2s'
-          }}
-        >
-          {isGenerating ? 'Generating & Validating...' : 'Generate New Track'}
-        </button>
-      </div>
+      {currentMenu === 'parameters' && (
+        <>
+          <div style={cardStyle}>
+            <h2 style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#ff0055' }}>Car Parameters</h2>
 
-      {/* Car Parameters Card */}
-      <div style={cardStyle}>
-        <h2 style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#ff0055' }}>Car Parameters</h2>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}><span>Max Acceleration</span><span style={{ color: '#ff0055' }}>{carParams.maxAcceleration} m/s²</span></label>
+              <input type="range" min="10" max="200" step="5" value={carParams.maxAcceleration} onChange={e => updateCarParam('maxAcceleration', parseFloat(e.target.value))} style={{ width: '100%' }} />
+            </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}><span>Max Acceleration</span><span style={{ color: '#ff0055' }}>{carParams.maxAcceleration} m/s²</span></label>
-          <input type="range" min="10" max="200" step="5" value={carParams.maxAcceleration} onChange={e => updateCarParam('maxAcceleration', parseFloat(e.target.value))} style={{ width: '100%' }} />
-        </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}><span>Max Braking</span><span style={{ color: '#ff0055' }}>{carParams.maxBraking} m/s²</span></label>
+              <input type="range" min="10" max="200" step="5" value={carParams.maxBraking} onChange={e => updateCarParam('maxBraking', parseFloat(e.target.value))} style={{ width: '100%' }} />
+            </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}><span>Max Braking</span><span style={{ color: '#ff0055' }}>{carParams.maxBraking} m/s²</span></label>
-          <input type="range" min="10" max="200" step="5" value={carParams.maxBraking} onChange={e => updateCarParam('maxBraking', parseFloat(e.target.value))} style={{ width: '100%' }} />
-        </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}><span>Max Velocity</span><span style={{ color: '#ff0055' }}>{carParams.maxVelocity} m/s</span></label>
+              <input type="range" min="50" max="500" step="10" value={carParams.maxVelocity} onChange={e => updateCarParam('maxVelocity', parseFloat(e.target.value))} style={{ width: '100%' }} />
+            </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}><span>Max Velocity</span><span style={{ color: '#ff0055' }}>{carParams.maxVelocity} m/s</span></label>
-          <input type="range" min="50" max="500" step="10" value={carParams.maxVelocity} onChange={e => updateCarParam('maxVelocity', parseFloat(e.target.value))} style={{ width: '100%' }} />
-        </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}><span>Steering Sensitivity</span><span style={{ color: '#ff0055' }}>{carParams.steeringSensitivity.toFixed(3)}</span></label>
+              <input type="range" min="0.005" max="0.05" step="0.001" value={carParams.steeringSensitivity} onChange={e => updateCarParam('steeringSensitivity', parseFloat(e.target.value))} style={{ width: '100%' }} />
+            </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}><span>Steering Sensitivity</span><span style={{ color: '#ff0055' }}>{carParams.steeringSensitivity.toFixed(3)}</span></label>
-          <input type="range" min="0.005" max="0.05" step="0.001" value={carParams.steeringSensitivity} onChange={e => updateCarParam('steeringSensitivity', parseFloat(e.target.value))} style={{ width: '100%' }} />
-        </div>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={labelStyle}><span>Gravity</span><span style={{ color: '#ff0055' }}>{carParams.gravity} m/s²</span></label>
+              <input type="range" min="10" max="150" step="5" value={carParams.gravity} onChange={e => updateCarParam('gravity', parseFloat(e.target.value))} style={{ width: '100%' }} />
+            </div>
 
-        <div style={{ marginBottom: '24px' }}>
-          <label style={labelStyle}><span>Gravity</span><span style={{ color: '#ff0055' }}>{carParams.gravity} m/s²</span></label>
-          <input type="range" min="10" max="150" step="5" value={carParams.gravity} onChange={e => updateCarParam('gravity', parseFloat(e.target.value))} style={{ width: '100%' }} />
-        </div>
-
-        <button 
-          onClick={handleCopyParams}
-          style={{
-            width: '100%', padding: '12px', background: 'transparent',
-            border: '1px solid #ff0055', color: '#ff0055', borderRadius: '8px',
-            cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s'
-          }}
-        >
-          {copied ? 'Copied!' : 'Copy Parameters to Clipboard'}
-        </button>
-      </div>
-      
-      {/* Close Menu Button */}
-      <button 
-        onClick={() => gameStore.setMenuOpen(false)}
-        style={{
-          width: '450px', padding: '16px', background: 'transparent',
-          border: '1px solid #555', color: '#fff', borderRadius: '8px',
-          cursor: 'pointer', fontWeight: 'bold'
-        }}
-      >
-        Resume Game
-      </button>
+            <button 
+              onClick={handleCopyParams}
+              style={{
+                width: '100%', padding: '12px', background: 'transparent',
+                border: '1px solid #ff0055', color: '#ff0055', borderRadius: '8px',
+                cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s'
+              }}
+            >
+              {copied ? 'Copied!' : 'Copy Parameters to Clipboard'}
+            </button>
+          </div>
+          <button style={{ ...buttonStyle, background: 'transparent' }} onClick={() => setCurrentMenu('main')}>Back</button>
+        </>
+      )}
 
     </div>
   );
