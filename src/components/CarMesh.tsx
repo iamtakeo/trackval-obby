@@ -49,9 +49,9 @@ class ThreeJSTrackAdapter implements TrackGeometry {
   getCartesian(s: number, u: number) {
     const t = this.getT(s);
     const point = this.curve.getPointAt(t);
-    const normal = this.getInterpolatedVector(this.frames.normals, t);
-    // Move laterally across the track width
-    return point.add(normal.multiplyScalar(u));
+    const binormal = this.getInterpolatedVector(this.frames.binormals, t);
+    // Move laterally across the track width (binormal is horizontal)
+    return point.add(binormal.multiplyScalar(u));
   }
 
   getTangent(s: number) { return this.getInterpolatedVector(this.frames.tangents, this.getT(s)); }
@@ -131,33 +131,35 @@ export function CarMesh({ curve, updateMyState }: CarMeshProps) {
     if (newState.type === 'grounded') {
       const pos = physics.track.getCartesian(newState.s, newState.u) as THREE.Vector3;
       const tangent = physics.track.getTangent(newState.s) as THREE.Vector3;
-      const binormal = physics.track.getBinormal(newState.s) as THREE.Vector3;
+      const normal = physics.track.getNormal(newState.s) as THREE.Vector3;
+      
+      // In Three.js computeFrenetFrames for a flat track, normal is vertical (-Y) and binormal is horizontal.
+      // Therefore, the track's physical "Up" is the inverse of the normal.
+      const trackUp = normal.clone().multiplyScalar(-1);
 
-      // We align the car's 'up' vector to match the track's surface normal (binormal).
-      carRef.current.up.copy(binormal);
+      // We align the car's 'up' vector to match the track's surface UP
+      carRef.current.up.copy(trackUp);
 
-      // Set car position and slight hover offset ALONG the binormal (track up vector)
-      carRef.current.position.copy(pos).add(binormal.clone().multiplyScalar(0.75));
+      // Set car position and slight hover offset ALONG the track up vector
+      carRef.current.position.copy(pos).add(trackUp.clone().multiplyScalar(0.75));
 
       // Orient the car to look forward along the tangent
       lookAtPos.copy(carRef.current.position).add(tangent);
       carRef.current.lookAt(lookAtPos);
 
       // Camera logic: Create a smooth "spring-arm" chase camera
-      // Instead of locking to the car's twitchy local steering quaternion,
-      // we position the camera behind the car along the smooth track tangent.
       const distanceBehind = 15;
       const heightAbove = 6;
       
       targetCameraPos.copy(carRef.current.position)
         .sub(tangent.clone().multiplyScalar(distanceBehind))
-        .add(binormal.clone().multiplyScalar(heightAbove));
+        .add(trackUp.clone().multiplyScalar(heightAbove));
 
       // Use frame-rate independent smooth lerp
       camera.position.lerp(targetCameraPos, 1.0 - Math.exp(-5.0 * dt));
       
-      // Smoothly roll the camera to match track banking, preventing nausea
-      camera.up.lerp(binormal, 1.0 - Math.exp(-3.0 * dt));
+      // Smoothly roll the camera to match track banking
+      camera.up.lerp(trackUp, 1.0 - Math.exp(-3.0 * dt));
 
       // Look comfortably ahead along the track, not just right at the bumper
       lookAheadPos.copy(carRef.current.position).add(tangent.clone().multiplyScalar(40));
