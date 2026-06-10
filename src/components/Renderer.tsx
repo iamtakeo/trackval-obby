@@ -8,6 +8,7 @@ import { CarMesh } from './CarMesh';
 import { OtherPlayers } from './OtherPlayers';
 import { useMultiplayer } from '../hooks/useMultiplayer';
 import { gameStore } from '../store';
+import { generateTrackCurve } from '../utils/trackGenerator';
 import type { TrackData } from '../utils/trackGenerator';
 
 export function Renderer() {
@@ -21,7 +22,25 @@ export function Renderer() {
   }, []);
   
   // Hook up multiplayer
-  const { players, updateMyState } = useMultiplayer();
+  const { players, updateMyState, isConnected, broadcastTrack } = useMultiplayer();
+
+  useEffect(() => {
+    // If we've connected to the global instance but haven't received a track sync,
+    // we might be the first player in the room!
+    if (isConnected && !trackData) {
+      const timer = setTimeout(() => {
+        if (!gameStore.getTrackData()) {
+          console.log("No global track received, generating one as the host...");
+          const newTrack = generateTrackCurve({});
+          gameStore.setTrackData(newTrack);
+          if (newTrack.dna) {
+            broadcastTrack(newTrack.dna);
+          }
+        }
+      }, 1000); // Wait 1 second to make absolutely sure no sync message is incoming
+      return () => clearTimeout(timer);
+    }
+  }, [isConnected, trackData, broadcastTrack]);
 
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>

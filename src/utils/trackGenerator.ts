@@ -13,6 +13,7 @@ export interface TrackData {
     binormals: THREE.Vector3[];
   };
   failureReason?: string;
+  dna?: TrackDNA;
 }
 
 export function computeFixedUpFrames(curve: THREE.CatmullRomCurve3, segments: number, splinePoints?: any[]) {
@@ -63,12 +64,15 @@ export function computeFixedUpFrames(curve: THREE.CatmullRomCurve3, segments: nu
   return { tangents, normals, binormals };
 }
 
+import type { TrackDNA } from '../generation/types';
+
 export interface GeneratorParams {
   segmentsPerTrack?: number;
   generations?: number;
   elevationVariance?: number; // 1 = normal, higher = steeper hills
   curvatureVariance?: number; // 1 = normal, higher = sharper turns
   isClosed?: boolean;
+  dna?: TrackDNA;
 }
 
 const defaultCapabilities: CartesianCapabilities = {
@@ -82,6 +86,12 @@ const defaultCapabilities: CartesianCapabilities = {
 
 export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
   const validator = new TrackValidator(defaultCapabilities);
+
+  // If DNA is provided from the network, skip generation entirely!
+  if (params.dna) {
+    const splinePoints = MathOracle.generateSpline(params.dna, 5);
+    return processSplinePoints(splinePoints, params);
+  }
 
   const maxRetries = 5;
   let lastFailureReason = "Unknown error";
@@ -115,7 +125,24 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
     }
 
     const splinePoints = MathOracle.generateSpline(bestDna, 5);
+    return processSplinePoints(splinePoints, params, bestDna);
+  }
 
+  // Fallback
+  const flatVectors = [
+    new THREE.Vector3(0, 10, 0),
+    new THREE.Vector3(50, 10, 50),
+    new THREE.Vector3(100, 10, 0),
+    new THREE.Vector3(50, 10, -50),
+    new THREE.Vector3(0, 10, -100)
+  ];
+  const fallbackCurve = new THREE.CatmullRomCurve3(flatVectors, false, 'centripetal', 0.5);
+  const frames = computeFixedUpFrames(fallbackCurve, 400);
+
+  return { curve: fallbackCurve, frames, failureReason: lastFailureReason };
+}
+
+function processSplinePoints(splinePoints: any[], params: GeneratorParams, dna?: TrackDNA): TrackData & { dna?: TrackDNA } {
     let vectors = splinePoints.map(sp => new THREE.Vector3(
       sp.position[0],
       sp.position[2],
@@ -171,18 +198,5 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
     const curve = new THREE.CatmullRomCurve3(vectors, params.isClosed || false, 'centripetal', 0.5);
     const frames = computeFixedUpFrames(curve, 400, splinePoints);
     
-    return { curve, frames }; 
+    return { curve, frames, dna: dna || params.dna }; 
   }
-
-  const flatVectors = [
-    new THREE.Vector3(0, 10, 0),
-    new THREE.Vector3(50, 10, 50),
-    new THREE.Vector3(100, 10, 0),
-    new THREE.Vector3(50, 10, -50),
-    new THREE.Vector3(0, 10, -100)
-  ];
-  const fallbackCurve = new THREE.CatmullRomCurve3(flatVectors, false, 'centripetal', 0.5);
-  const frames = computeFixedUpFrames(fallbackCurve, 400);
-
-  return { curve: fallbackCurve, frames, failureReason: lastFailureReason };
-}

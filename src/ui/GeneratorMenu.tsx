@@ -1,9 +1,11 @@
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { gameStore } from '../store';
 import { generateTrackCurve } from '../utils/trackGenerator';
+import { useMultiplayer } from '../hooks/useMultiplayer';
 import type { CartesianCapabilities } from '../engine/CartesianPhysics';
 
 export function GeneratorMenu() {
+  const { broadcastTrack, broadcastParams } = useMultiplayer();
   const [isOpen, setIsOpen] = useState(gameStore.getMenuOpen());
   const [currentMenu, setCurrentMenu] = useState<'main' | 'generator' | 'parameters'>('main');
   
@@ -42,6 +44,9 @@ export function GeneratorMenu() {
           setErrorMsg(result.failureReason);
         } else {
           gameStore.setTrackData(result);
+          if (result.dna) {
+            broadcastTrack(result.dna);
+          }
           gameStore.setMenuOpen(false);
         }
       } catch (err: any) {
@@ -54,6 +59,7 @@ export function GeneratorMenu() {
 
   const updateCarParam = (key: keyof CartesianCapabilities, value: number) => {
     gameStore.setCarParameters({ [key]: value });
+    broadcastParams({ ...carParams, [key]: value });
   };
 
   const handleCopyParams = () => {

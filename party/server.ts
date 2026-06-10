@@ -10,6 +10,8 @@ export interface Player {
 
 export default class TrackvalServer implements Party.Server {
   players: Map<string, Player>;
+  globalTrackDNA: any | null = null;
+  globalCarParams: any | null = null;
 
   constructor(readonly room: Party.Room) {
     this.players = new Map();
@@ -26,10 +28,12 @@ export default class TrackvalServer implements Party.Server {
     };
     this.players.set(conn.id, newPlayer);
 
-    // Send current state of all players to the new connection
+    // Send current state of all players and the global world state
     conn.send(JSON.stringify({
       type: "sync",
-      players: Object.fromEntries(this.players)
+      players: Object.fromEntries(this.players),
+      globalTrackDNA: this.globalTrackDNA,
+      globalCarParams: this.globalCarParams
     }));
     
     // Notify others
@@ -43,7 +47,21 @@ export default class TrackvalServer implements Party.Server {
     try {
       const data = JSON.parse(message);
       
-      if (data.type === "update") {
+      if (data.type === "setTrack") {
+        this.globalTrackDNA = data.dna;
+        this.room.broadcast(JSON.stringify({
+          type: "setTrack",
+          dna: data.dna
+        }), [sender.id]); // broadcast to everyone else
+      }
+      else if (data.type === "setParams") {
+        this.globalCarParams = data.params;
+        this.room.broadcast(JSON.stringify({
+          type: "setParams",
+          params: data.params
+        }), [sender.id]); // broadcast to everyone else
+      }
+      else if (data.type === "update") {
         const player = this.players.get(sender.id);
         if (player) {
           if (data.position) player.position = data.position;

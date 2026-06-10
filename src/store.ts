@@ -1,4 +1,3 @@
-import { generateTrackCurve } from './utils/trackGenerator';
 import type { TrackData } from './utils/trackGenerator';
 import type { CartesianCapabilities } from './engine/CartesianPhysics';
 
@@ -21,8 +20,8 @@ class GameStore {
   private listeners = new Set<Listener>();
 
   constructor() {
-    // Generate the initial track
-    this.trackData = generateTrackCurve({});
+    // Track will be generated or synced via the multiplayer network
+    this.trackData = null;
   }
 
   setSpeed(newSpeed: number) {
