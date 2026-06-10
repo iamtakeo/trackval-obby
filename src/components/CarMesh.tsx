@@ -71,7 +71,6 @@ export function CarMesh({ curve, updateMyState }: CarMeshProps) {
   
   // Reusable vectors to avoid allocations in game loop
   const lookAtPos = useMemo(() => new THREE.Vector3(), []);
-  const cameraOffset = useMemo(() => new THREE.Vector3(), []);
   const targetCameraPos = useMemo(() => new THREE.Vector3(), []);
   const lookAheadPos = useMemo(() => new THREE.Vector3(), []);
 
@@ -144,12 +143,24 @@ export function CarMesh({ curve, updateMyState }: CarMeshProps) {
       lookAtPos.copy(carRef.current.position).add(tangent);
       carRef.current.lookAt(lookAtPos);
 
-      // Camera logic
-      cameraOffset.set(0, 4, 12);
-      cameraOffset.applyQuaternion(carRef.current.quaternion);
-      targetCameraPos.copy(carRef.current.position).add(cameraOffset);
-      camera.position.lerp(targetCameraPos, 0.1);
-      lookAheadPos.copy(carRef.current.position).add(tangent.clone().multiplyScalar(20));
+      // Camera logic: Create a smooth "spring-arm" chase camera
+      // Instead of locking to the car's twitchy local steering quaternion,
+      // we position the camera behind the car along the smooth track tangent.
+      const distanceBehind = 15;
+      const heightAbove = 6;
+      
+      targetCameraPos.copy(carRef.current.position)
+        .sub(tangent.clone().multiplyScalar(distanceBehind))
+        .add(binormal.clone().multiplyScalar(heightAbove));
+
+      // Use frame-rate independent smooth lerp
+      camera.position.lerp(targetCameraPos, 1.0 - Math.exp(-5.0 * dt));
+      
+      // Smoothly roll the camera to match track banking, preventing nausea
+      camera.up.lerp(binormal, 1.0 - Math.exp(-3.0 * dt));
+
+      // Look comfortably ahead along the track, not just right at the bumper
+      lookAheadPos.copy(carRef.current.position).add(tangent.clone().multiplyScalar(40));
       camera.lookAt(lookAheadPos);
 
       // Network Broadcast (Throttled to ~15 Hz)
