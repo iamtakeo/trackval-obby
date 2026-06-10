@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useKeyboardControls } from '../hooks/useKeyboardControls';
@@ -111,6 +111,11 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
   };
 
   const physicsState = useRef<CartesianState>(getInitialState());
+
+  useEffect(() => {
+    physicsState.current = getInitialState();
+  }, [physics]);
+
 
   useFrame((state, delta) => {
     if (!carRef.current) return;
