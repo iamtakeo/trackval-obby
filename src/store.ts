@@ -17,12 +17,30 @@ class GameStore {
   private trackData: TrackData | null = null;
   private isMenuOpen = false;
   private carParameters: CartesianCapabilities = { ...defaultCarCapabilities };
+  private playerName: string = "Guest";
+  private connectedPlayers: Record<string, any> = {};
   private listeners = new Set<Listener>();
 
   constructor() {
     // Track will be generated or synced via the multiplayer network
     this.trackData = null;
   }
+
+  setPlayerName(name: string) {
+    if (this.playerName !== name) {
+      this.playerName = name;
+      this.emit();
+    }
+  }
+
+  getPlayerName = () => this.playerName;
+
+  setConnectedPlayers(players: Record<string, any>) {
+    this.connectedPlayers = players;
+    this.emit();
+  }
+
+  getConnectedPlayers = () => this.connectedPlayers;
 
   setSpeed(newSpeed: number) {
     if (Math.abs(this.speed - newSpeed) > 1) { 

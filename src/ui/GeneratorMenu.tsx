@@ -7,7 +7,7 @@ import type { CartesianCapabilities } from '../engine/CartesianPhysics';
 export function GeneratorMenu() {
   const { broadcastTrack, broadcastParams } = useMultiplayer();
   const [isOpen, setIsOpen] = useState(gameStore.getMenuOpen());
-  const [currentMenu, setCurrentMenu] = useState<'main' | 'generator' | 'parameters'>('main');
+  const [currentMenu, setCurrentMenu] = useState<'main' | 'generator' | 'parameters' | 'players'>('main');
   
   const [segments, setSegments] = useState(15);
   const [generations, setGenerations] = useState(20);
@@ -16,6 +16,8 @@ export function GeneratorMenu() {
   const [errorMsg, setErrorMsg] = useState('');
   
   const carParams = useSyncExternalStore(gameStore.subscribe, gameStore.getCarParameters);
+  const connectedPlayers = useSyncExternalStore(gameStore.subscribe, gameStore.getConnectedPlayers);
+  const myName = useSyncExternalStore(gameStore.subscribe, gameStore.getPlayerName);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -117,6 +119,7 @@ export function GeneratorMenu() {
       
       {currentMenu === 'main' && (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <button style={buttonStyle} onClick={() => setCurrentMenu('players')} onMouseOver={e => e.currentTarget.style.borderColor = '#00ffaa'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Players ({Object.keys(connectedPlayers).length + 1})</button>
           <button style={buttonStyle} onClick={() => setCurrentMenu('generator')} onMouseOver={e => e.currentTarget.style.borderColor = '#00e5ff'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Track Generator</button>
           <button style={buttonStyle} onClick={() => setCurrentMenu('parameters')} onMouseOver={e => e.currentTarget.style.borderColor = '#ff0055'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Car Parameters</button>
           <button style={{ ...buttonStyle, background: 'transparent', borderColor: '#888' }} onClick={() => gameStore.setMenuOpen(false)}>Resume Game</button>
@@ -231,6 +234,34 @@ export function GeneratorMenu() {
             >
               {copied ? 'Copied!' : 'Copy Parameters to Clipboard'}
             </button>
+          </div>
+          <button style={{ ...buttonStyle, background: 'transparent' }} onClick={() => setCurrentMenu('main')}>Back</button>
+        </>
+      )}
+
+      {currentMenu === 'players' && (
+        <>
+          <div style={{...cardStyle, boxShadow: '0 0 40px rgba(0, 255, 170, 0.1)'}}>
+            <h2 style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#00ffaa' }}>Connected Players</h2>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto', marginBottom: '20px' }}>
+              <div style={{ padding: '12px', background: 'rgba(0, 255, 170, 0.1)', border: '1px solid #00ffaa', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                <strong style={{ color: '#00ffaa' }}>{myName} (You)</strong>
+                <span style={{ fontSize: '12px', opacity: 0.7 }}>Host</span>
+              </div>
+              
+              {Object.values(connectedPlayers).map((p: any) => (
+                <div key={p.id} style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid #444', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{p.name || 'Ghost Driver'}</span>
+                </div>
+              ))}
+              
+              {Object.keys(connectedPlayers).length === 0 && (
+                <div style={{ textAlign: 'center', color: '#888', padding: '20px 0' }}>
+                  No one else is here yet.
+                </div>
+              )}
+            </div>
           </div>
           <button style={{ ...buttonStyle, background: 'transparent' }} onClick={() => setCurrentMenu('main')}>Back</button>
         </>

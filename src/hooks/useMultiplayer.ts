@@ -31,6 +31,7 @@ export function useMultiplayer() {
         switch (data.type) {
           case 'sync':
             setPlayers(data.players);
+            gameStore.setConnectedPlayers(data.players);
             if (data.globalTrackDNA) {
               gameStore.setTrackData(generateTrackCurve({ dna: data.globalTrackDNA }));
             }
@@ -49,17 +50,18 @@ export function useMultiplayer() {
             }
             break;
           case 'join':
-            setPlayers((prev) => ({
-              ...prev,
-              [data.player.id]: data.player
-            }));
+            setPlayers((prev) => {
+              const newPlayers = { ...prev, [data.player.id]: data.player };
+              gameStore.setConnectedPlayers(newPlayers);
+              return newPlayers;
+            });
             break;
           case 'update':
             setPlayers((prev) => {
               const player = prev[data.id];
               if (!player) return prev;
               
-              return {
+              const newPlayers = {
                 ...prev,
                 [data.id]: {
                   ...player,
@@ -69,12 +71,15 @@ export function useMultiplayer() {
                   name: data.name || player.name
                 }
               };
+              gameStore.setConnectedPlayers(newPlayers);
+              return newPlayers;
             });
             break;
           case 'leave':
             setPlayers((prev) => {
               const newPlayers = { ...prev };
               delete newPlayers[data.id];
+              gameStore.setConnectedPlayers(newPlayers);
               return newPlayers;
             });
             break;
@@ -89,6 +94,7 @@ export function useMultiplayer() {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({
         type: 'update',
+        name: gameStore.getPlayerName(),
         ...stateUpdate
       }));
     }
