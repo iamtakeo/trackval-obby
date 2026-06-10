@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { Sky, Environment, Plane } from '@react-three/drei';
 import { generateTrackCurve } from '../utils/trackGenerator';
@@ -13,7 +14,7 @@ export function Renderer() {
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <Canvas
         camera={{ position: [0, 10, 20], fov: 75 }}
-        shadows
+        shadows={{ type: THREE.PCFShadowMap }}
       >
         {/* Skybox and environmental lighting */}
         <Sky distance={450000} sunPosition={[100, 20, 100]} inclination={0} azimuth={0.25} />
@@ -26,6 +27,10 @@ export function Renderer() {
           castShadow 
           shadow-mapSize-width={2048} 
           shadow-mapSize-height={2048} 
+          shadow-camera-left={-200}
+          shadow-camera-right={200}
+          shadow-camera-top={200}
+          shadow-camera-bottom={-200}
         />
         <ambientLight intensity={0.4} />
         

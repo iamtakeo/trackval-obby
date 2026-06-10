@@ -29,7 +29,7 @@ export class GeneticAlgorithm {
             sweepAngle: isStraight ? 0 : (Math.random() - 0.5) * Math.PI, // -90 to 90 degrees
             bankAngle: (Math.random() - 0.5) * (Math.PI / 4), // -22.5 to 22.5 degrees
             width: Math.random() * 10 + 5, // 5 to 15m
-            elevation: (Math.random() - 0.5) * 20 // -10 to 10m delta
+            elevation: (Math.random() - 0.5) * 4 // -2 to 2m delta (mostly flat)
         };
     }
 
@@ -76,7 +76,7 @@ export class GeneticAlgorithm {
                         seg.width = Math.max(5, seg.width);
                         break;
                     case 4:
-                        seg.elevation += (Math.random() - 0.5) * 10;
+                        seg.elevation += (Math.random() - 0.5) * 2;
                         break;
                 }
             }
