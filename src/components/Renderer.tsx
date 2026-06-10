@@ -22,7 +22,12 @@ export function Renderer() {
   }, []);
   
   // Hook up multiplayer
-  const { players, updateMyState, isConnected, broadcastTrack } = useMultiplayer();
+  const { players, updateMyState, isConnected, broadcastTrack, socketId } = useMultiplayer();
+
+  // Filter out the local player from the remote players list
+  const remotePlayers = Object.fromEntries(
+    Object.entries(players).filter(([id]) => id !== socketId)
+  );
 
   useEffect(() => {
     // If we've connected to the global instance but haven't received a track sync,
@@ -75,7 +80,7 @@ export function Renderer() {
         <RampsMesh />
         {trackData && <TrackMesh trackData={trackData} />}
         {trackData && <CarMesh trackData={trackData} updateMyState={updateMyState} />}
-        <OtherPlayers players={players} />
+        <OtherPlayers players={remotePlayers} />
       </Canvas>
     </div>
   );
