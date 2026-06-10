@@ -5,10 +5,15 @@ import { Sky, Environment, Plane } from '@react-three/drei';
 import { generateTrackCurve } from '../utils/trackGenerator';
 import { TrackMesh } from './TrackMesh';
 import { CarMesh } from './CarMesh';
+import { OtherPlayers } from './OtherPlayers';
+import { useMultiplayer } from '../hooks/useMultiplayer';
 
 export function Renderer() {
   // Generate the procedural track DNA only once
   const curve = useMemo(() => generateTrackCurve(), []);
+  
+  // Hook up multiplayer
+  const { players, updateMyState } = useMultiplayer();
 
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
@@ -41,7 +46,8 @@ export function Renderer() {
         
         {/* Game Entities */}
         <TrackMesh curve={curve} />
-        <CarMesh curve={curve} />
+        <CarMesh curve={curve} updateMyState={updateMyState} />
+        <OtherPlayers players={players} />
       </Canvas>
     </div>
   );

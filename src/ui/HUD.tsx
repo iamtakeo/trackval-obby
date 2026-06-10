@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { gameStore } from '../store';
 
 const HUD: React.FC = () => {
-  const [speed, setSpeed] = useState(0);
   const [time, setTime] = useState(0);
+
+  const speed = React.useSyncExternalStore(gameStore.subscribe, gameStore.getSpeed);
 
   // Mocking game data for demonstration
   useEffect(() => {
@@ -11,19 +13,7 @@ const HUD: React.FC = () => {
       setTime(prev => prev + 10); // increments of 10ms
     }, 10);
 
-    // Speed fluctuation
-    const speedInterval = setInterval(() => {
-      setSpeed(prev => {
-        // Random fluctuation for realistic speedometer effect
-        const target = 140 + Math.random() * 40;
-        return Math.floor(prev + (target - prev) * 0.1);
-      });
-    }, 100);
-
-    return () => {
-      clearInterval(timeInterval);
-      clearInterval(speedInterval);
-    };
+    return () => clearInterval(timeInterval);
   }, []);
 
   // Format time as MM:SS:ms
