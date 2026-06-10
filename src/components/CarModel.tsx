@@ -212,7 +212,7 @@ export function CarModel({ appearance, isGhost = false }: CarModelProps) {
   }
 
   return (
-    <group>
+    <group rotation={[0, Math.PI, 0]}>
       {coreBody}
       {renderDecals(attachPoints.roofY, attachPoints.length)}
       {renderSpoiler(attachPoints.rearZ, attachPoints.rearY)}
