@@ -30,7 +30,7 @@ export class MathOracle {
             const startWidth = points[points.length - 1].width || 10;
             const deltaWidth = seg.width - startWidth;
             
-            const samples = Math.max(2, samplesPerSegment);
+            const samples = seg.type === 'loop' ? 20 : Math.max(2, samplesPerSegment);
 
             if (seg.type === 'loop') {
                 const R = Math.max(10, seg.radius); // Minimum loop radius
