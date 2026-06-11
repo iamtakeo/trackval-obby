@@ -24,6 +24,8 @@ export function computeFixedUpFrames(curve: THREE.CatmullRomCurve3, segments: nu
   const normals = frames.normals;
   const binormals = frames.binormals;
 
+  let loopBinormal = new THREE.Vector3(1, 0, 0);
+
   for (let i = 0; i <= segments; i++) {
     const u = i / segments;
     const tangent = tangents[i];
@@ -39,7 +41,6 @@ export function computeFixedUpFrames(curve: THREE.CatmullRomCurve3, segments: nu
       const pt1 = splinePoints[idx];
       const pt2 = splinePoints[Math.min(idx + 1, splinePoints.length - 1)];
       
-      // If either endpoint of the interpolation is a loop, treat it as a loop section
       isLoop = pt1.isLoop || pt2.isLoop;
       
       const bank1 = pt1.bank || 0;
@@ -54,11 +55,11 @@ export function computeFixedUpFrames(curve: THREE.CatmullRomCurve3, segments: nu
             binormals[i].crossVectors(tangent, globalUp).normalize();
             normals[i].crossVectors(binormals[i], tangent).normalize();
         }
-    } else if (i > 0) {
-        // For loops, we must rely on Parallel Transport from the PREVIOUS frame
-        // to smoothly rotate upside down.
-        const prevNormal = normals[i - 1];
-        normals[i].copy(prevNormal).projectOnPlane(tangent).normalize();
+        loopBinormal.copy(binormals[i]); // Capture the last stable binormal before a loop
+    } else {
+        // For loops, we lock the binormal to the lateral axis of the loop entrance.
+        // This completely prevents the helix torsion from twisting the track.
+        normals[i].crossVectors(loopBinormal, tangent).normalize();
         binormals[i].crossVectors(tangent, normals[i]).normalize();
     }
 
