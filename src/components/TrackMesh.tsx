@@ -43,7 +43,11 @@ export function TrackMesh({ trackData }: TrackMeshProps) {
 
       if (i < steps) {
         const row = i * 4;
-        const nextRow = (i + 1) * 4;
+        let nextRow = (i + 1) * 4;
+
+        if (trackData.dna?.isClosed && i === steps - 1) {
+            nextRow = 0; // Weld the seam back to the start!
+        }
 
         // Top face
         indices.push(row, row + 1, nextRow);

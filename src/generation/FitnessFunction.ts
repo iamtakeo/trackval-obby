@@ -186,6 +186,6 @@ export class FitnessFunction {
             fitness -= Math.pow(endBank - startBank, 2) * 2000;
         }
 
-        return Math.max(0, fitness + 1000); // Shift to keep positive
+        return fitness; // Do not clamp to 0 so the GA can follow the gradient!
     }
 }
