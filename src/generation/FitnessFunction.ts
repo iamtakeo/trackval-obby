@@ -4,7 +4,7 @@ export class FitnessFunction {
     /**
      * Evaluates a track DNA on variance, smoothness, and thrill.
      */
-    static evaluate(dna: TrackDNA): number {
+    static evaluate(dna: TrackDNA, sequenceVariety: number = 0.5): number {
         if (dna.segments.length === 0) return 0;
 
         let fitness = 0;
@@ -37,14 +37,34 @@ export class FitnessFunction {
         const varianceScore = (varRadius * 0.1) + (varSweep * 10) + (varElev * 2) + (varBank * 10);
         fitness += varianceScore;
         
-        // --- 2. Smoothness (Penalize jerk) & Spirals ---
+        // --- 2. Smoothness (Penalize jerk) & Spirals & Sequence Repetition ---
         let jerkPenalty = 0;
         let accumulatedSweep = 0;
+        let repetitionPenalty = 0;
         
         for (let i = 1; i < n; i++) {
             const prev = segments[i - 1];
             const curr = segments[i];
             
+            // Repetition Penalty logic
+            let isRepeat = false;
+            if (prev.type === 'loop' && curr.type === 'loop') {
+                isRepeat = true;
+            } else if (prev.type !== 'loop' && curr.type !== 'loop') {
+                const prevIsStraight = Math.abs(prev.sweepAngle) < 0.0001;
+                const currIsStraight = Math.abs(curr.sweepAngle) < 0.0001;
+                
+                if (prevIsStraight && currIsStraight) {
+                    isRepeat = true;
+                } else if (!prevIsStraight && !currIsStraight && Math.sign(prev.sweepAngle) === Math.sign(curr.sweepAngle)) {
+                    isRepeat = true; // both curve left or both curve right
+                }
+            }
+
+            if (isRepeat) {
+                repetitionPenalty += 1000 * sequenceVariety;
+            }
+
             // Accumulate sweep to prevent spirals of death
             if (curr.type !== 'loop') {
                 if (Math.sign(curr.sweepAngle) === Math.sign(accumulatedSweep) || accumulatedSweep === 0) {
@@ -71,6 +91,7 @@ export class FitnessFunction {
             jerkPenalty += (deltaK * 500) + (deltaBank * 50) + (deltaElev * 2);
         }
         fitness -= jerkPenalty;
+        fitness -= repetitionPenalty;
         
         // --- 3. Thrill Bonus ---
         let thrillBonus = 0;

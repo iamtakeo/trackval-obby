@@ -9,6 +9,7 @@ export interface GAConfig {
     loopChance: number;
     turnChance: number;
     elevationVolatility: number;
+    sequenceVariety: number;
 }
 
 export class GeneticAlgorithm {
@@ -23,7 +24,8 @@ export class GeneticAlgorithm {
             segmentsPerTrack: config.segmentsPerTrack || 20,
             loopChance: config.loopChance ?? 0.05,
             turnChance: config.turnChance ?? 0.8,
-            elevationVolatility: config.elevationVolatility ?? 10
+            elevationVolatility: config.elevationVolatility ?? 10,
+            sequenceVariety: config.sequenceVariety ?? 0.5
         };
     }
 
@@ -118,7 +120,7 @@ export class GeneticAlgorithm {
         for (let gen = 0; gen < this.config.generations; gen++) {
             const scoredPopulation = this.population.map(dna => ({
                 dna,
-                fitness: FitnessFunction.evaluate(dna)
+                fitness: FitnessFunction.evaluate(dna, this.config.sequenceVariety)
             }));
 
             // Sort descending by fitness

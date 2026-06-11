@@ -15,6 +15,7 @@ export function GeneratorMenu() {
   const [loopChance, setLoopChance] = useState(0.05);
   const [turnChance, setTurnChance] = useState(0.8);
   const [elevationVolatility, setElevationVolatility] = useState(10);
+  const [sequenceVariety, setSequenceVariety] = useState(0.5);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
@@ -46,7 +47,8 @@ export function GeneratorMenu() {
           isClosed: isClosed,
           loopChance: loopChance,
           turnChance: turnChance,
-          elevationVolatility: elevationVolatility
+          elevationVolatility: elevationVolatility,
+          sequenceVariety: sequenceVariety
         });
 
         if (result.failureReason) {
@@ -183,6 +185,18 @@ export function GeneratorMenu() {
               <input 
                 type="range" min="0" max="1" step="0.05" value={turnChance} 
                 onChange={e => setTurnChance(parseFloat(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label style={labelStyle}>
+                <span>Sequence Variety</span>
+                <span style={{ color: '#00e5ff' }}>{(sequenceVariety * 100).toFixed(0)}%</span>
+              </label>
+              <input 
+                type="range" min="0" max="1" step="0.05" value={sequenceVariety} 
+                onChange={e => setSequenceVariety(parseFloat(e.target.value))}
                 style={{ width: '100%' }}
               />
             </div>

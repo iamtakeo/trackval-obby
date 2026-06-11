@@ -29,6 +29,7 @@ export interface GeneratorParams {
   loopChance?: number;
   turnChance?: number;
   elevationVolatility?: number;
+  sequenceVariety?: number;
 }
 
 const defaultCapabilities: CartesianCapabilities = {
@@ -57,7 +58,8 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
     segmentsPerTrack: params.segmentsPerTrack || 15,
     loopChance: params.loopChance,
     turnChance: params.turnChance,
-    elevationVolatility: params.elevationVolatility
+    elevationVolatility: params.elevationVolatility,
+    sequenceVariety: params.sequenceVariety
   });
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
