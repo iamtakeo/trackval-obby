@@ -10,6 +10,7 @@ import { useMultiplayer } from '../hooks/useMultiplayer';
 import { gameStore } from '../store';
 import { generateTrackCurve } from '../utils/trackGenerator';
 import type { TrackData } from '../utils/trackGenerator';
+import { generateRamps } from '../utils/rampData';
 
 export function Renderer() {
   const [trackData, setTrackData] = useState<TrackData | null>(gameStore.getTrackData());
@@ -38,8 +39,10 @@ export function Renderer() {
           console.log("No global track received, generating one as the host...");
           const newTrack = generateTrackCurve({});
           gameStore.setTrackData(newTrack);
+          const newRamps = generateRamps(5); // default frequency
+          gameStore.setRamps(newRamps);
           if (newTrack.dna) {
-            broadcastTrack(newTrack.dna);
+            broadcastTrack(newTrack.dna, newRamps);
           }
         }
       }, 1000); // Wait 1 second to make absolutely sure no sync message is incoming
