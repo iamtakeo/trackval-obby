@@ -1,12 +1,8 @@
 import type { TrackDNA, SplinePoint } from './types';
 
+
+
 export class MathOracle {
-    /**
-     * Converts a TrackDNA sequence into an array of 3D SplinePoints.
-     * @param dna The generated DNA
-     * @param samplesPerSegment How many spline points to generate per segment
-     * @returns An array of SplinePoints representing the track center line and orientation
-     */
     static generateSpline(dna: TrackDNA, samplesPerSegment: number = 10): SplinePoint[] {
         const points: SplinePoint[] = [];
         
@@ -20,10 +16,9 @@ export class MathOracle {
 
         points.push({
             position: [px, py, pz],
-            tangent: [Math.cos(yaw), Math.sin(yaw), 0],
-            normal: [-Math.sin(yaw), Math.cos(yaw), 0],
             width: initialWidth,
-            bank: initialBank
+            bank: initialBank,
+            isLoop: false
         });
 
         for (let sIdx = 0; sIdx < dna.segments.length; sIdx++) {
@@ -32,7 +27,7 @@ export class MathOracle {
             const startZ = pz;
             const startBank = points[points.length - 1].bank;
             const deltaBank = seg.bankAngle - startBank;
-            const startWidth = points[points.length - 1].width;
+            const startWidth = points[points.length - 1].width || 10;
             const deltaWidth = seg.width - startWidth;
             
             const samples = Math.max(2, samplesPerSegment);
@@ -52,23 +47,11 @@ export class MathOracle {
                     const currPy = py + forward * Math.sin(yaw) + lateral * Math.cos(yaw);
                     const currPz = startZ + R - R * Math.cos(angle);
                     
-                    // Derivatives for tangent
-                    const dForward = R * 2 * Math.PI * Math.cos(angle);
-                    const dLateral = drift;
-                    const dPz = R * 2 * Math.PI * Math.sin(angle);
-                    
-                    const tx = dForward * Math.cos(yaw) - dLateral * Math.sin(yaw);
-                    const ty = dForward * Math.sin(yaw) + dLateral * Math.cos(yaw);
-                    const tz = dPz;
-                    
-                    const tLen = Math.sqrt(tx * tx + ty * ty + tz * tz);
-                    
                     points.push({
                         position: [currPx, currPy, currPz],
-                        tangent: [tx / tLen, ty / tLen, tz / tLen],
-                        normal: [0, 0, 1], // Basic normal, to be replaced by Frenet frames
                         width: startWidth + deltaWidth * t,
-                        bank: startBank + deltaBank * t
+                        bank: startBank + deltaBank * t,
+                        isLoop: true
                     });
                 }
                 
@@ -76,22 +59,18 @@ export class MathOracle {
                 px = px - drift * Math.sin(yaw);
                 py = py + drift * Math.cos(yaw);
                 pz = startZ;
-                // yaw remains unchanged
                 continue;
             }
 
             // Normal curve/straight logic
             const isStraight = Math.abs(seg.sweepAngle) < 0.0001;
-            const arcLength = isStraight ? seg.radius : seg.radius * Math.abs(seg.sweepAngle);
             const deltaYaw = seg.sweepAngle;
             const deltaZ = seg.elevation;
             
             for (let i = 1; i <= samples; i++) {
                 const t = i / samples;
-                const currentYaw = yaw + deltaYaw * t;
                 
                 let currPx, currPy, currPz;
-                let tx, ty, tz;
                 
                 if (!isStraight) {
                     const R = seg.radius * Math.sign(seg.sweepAngle);
@@ -101,31 +80,18 @@ export class MathOracle {
                     currPx = cx + R * Math.sin(yaw + deltaYaw * t);
                     currPy = cy - R * Math.cos(yaw + deltaYaw * t);
                     currPz = startZ + deltaZ * t;
-                    
-                    tx = Math.cos(currentYaw);
-                    ty = Math.sin(currentYaw);
                 } else {
                     const length = seg.radius;
                     currPx = px + length * t * Math.cos(yaw);
                     currPy = py + length * t * Math.sin(yaw);
                     currPz = startZ + deltaZ * t;
-                    
-                    tx = Math.cos(yaw);
-                    ty = Math.sin(yaw);
                 }
-                
-                tz = deltaZ / (arcLength > 0.001 ? arcLength : 1);
-                const tLen = Math.sqrt(tx * tx + ty * ty + tz * tz);
-                
-                const nx = -Math.sin(currentYaw);
-                const ny = Math.cos(currentYaw);
                 
                 points.push({
                     position: [currPx, currPy, currPz],
-                    tangent: [tx / tLen, ty / tLen, tz / tLen],
-                    normal: [nx, ny, 0],
                     width: startWidth + deltaWidth * t,
-                    bank: startBank + deltaBank * t
+                    bank: startBank + deltaBank * t,
+                    isLoop: false
                 });
             }
             

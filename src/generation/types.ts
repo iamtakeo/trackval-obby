@@ -13,8 +13,7 @@ export interface TrackDNA {
 
 export interface SplinePoint {
     position: [number, number, number]; // [x, y, z]
-    tangent: [number, number, number];  // Normalized forward vector
-    normal: [number, number, number];   // Normalized up/side vector for track orientation
     width: number;
     bank: number;
+    isLoop?: boolean;
 }

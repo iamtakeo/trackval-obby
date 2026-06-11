@@ -27,24 +27,46 @@ export function computeFixedUpFrames(curve: THREE.CatmullRomCurve3, segments: nu
   for (let i = 0; i <= segments; i++) {
     const u = i / segments;
     const tangent = tangents[i];
-    const normal = normals[i];
-    const binormal = binormals[i];
+    
+    let isLoop = false;
+    let bankAngle = 0;
 
-    // Apply track banking if splinePoints are provided
     if (splinePoints && splinePoints.length > 0) {
       const floatIndex = u * (splinePoints.length - 1);
       const idx = Math.floor(floatIndex);
       const frac = floatIndex - idx;
-      const bank1 = splinePoints[idx].bank || 0;
-      const bank2 = splinePoints[Math.min(idx + 1, splinePoints.length - 1)].bank || 0;
-      const bankAngle = bank1 + (bank2 - bank1) * frac;
+      
+      const pt1 = splinePoints[idx];
+      const pt2 = splinePoints[Math.min(idx + 1, splinePoints.length - 1)];
+      
+      // If either endpoint of the interpolation is a loop, treat it as a loop section
+      isLoop = pt1.isLoop || pt2.isLoop;
+      
+      const bank1 = pt1.bank || 0;
+      const bank2 = pt2.bank || 0;
+      bankAngle = bank1 + (bank2 - bank1) * frac;
+    }
 
-      if (Math.abs(bankAngle) > 0.001) {
-        // Rotate the normal and binormal around the tangent axis by the bank angle
-        const bankQuat = new THREE.Quaternion().setFromAxisAngle(tangent, bankAngle);
-        normal.applyQuaternion(bankQuat);
-        binormal.applyQuaternion(bankQuat);
-      }
+    if (!isLoop) {
+        // Enforce global UP vector to prevent torsion accumulation from Parallel Transport
+        const globalUp = new THREE.Vector3(0, 1, 0);
+        if (Math.abs(tangent.y) < 0.99) {
+            binormals[i].crossVectors(tangent, globalUp).normalize();
+            normals[i].crossVectors(binormals[i], tangent).normalize();
+        }
+    } else if (i > 0) {
+        // For loops, we must rely on Parallel Transport from the PREVIOUS frame
+        // to smoothly rotate upside down.
+        const prevNormal = normals[i - 1];
+        normals[i].copy(prevNormal).projectOnPlane(tangent).normalize();
+        binormals[i].crossVectors(tangent, normals[i]).normalize();
+    }
+
+    // Apply track banking
+    if (Math.abs(bankAngle) > 0.001) {
+      const bankQuat = new THREE.Quaternion().setFromAxisAngle(tangent, bankAngle);
+      normals[i].applyQuaternion(bankQuat);
+      binormals[i].applyQuaternion(bankQuat);
     }
   }
 
