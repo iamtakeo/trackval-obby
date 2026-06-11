@@ -166,8 +166,9 @@ function buildTrackCurve(segments: MathematicalSegment[], dna?: TrackDNA): Track
         const endTangent = firstCurve.getTangent(0).normalize();
         
         const distance = startPt.distanceTo(endPt);
-        const cp1 = startPt.clone().add(startTangent.clone().multiplyScalar(distance * 0.33));
-        const cp2 = endPt.clone().sub(endTangent.clone().multiplyScalar(distance * 0.33));
+        const cpStrength = Math.min(distance * 0.33, 40); // Cap strength to prevent wild hairpins
+        const cp1 = startPt.clone().add(startTangent.clone().multiplyScalar(cpStrength));
+        const cp2 = endPt.clone().sub(endTangent.clone().multiplyScalar(cpStrength));
         
         const closingCurve = new THREE.CubicBezierCurve3(startPt, cp1, cp2, endPt);
         curvePath.add(closingCurve);
@@ -213,7 +214,8 @@ export function computeFixedUpFrames(curvePath: THREE.CurvePath<THREE.Vector3>, 
     }
     
     const activeCurve = curvePath.curves[curveIndex];
-    const isLoop = activeCurve instanceof LoopCurve3;
+    // Treat the closing CubicBezierCurve3 as a loop so its normal frame propagates smoothly and doesn't flip!
+    const isLoop = activeCurve instanceof LoopCurve3 || activeCurve instanceof THREE.CubicBezierCurve3;
     const worldSeg = worldSegments[curveIndex];
 
     let width = 12;
