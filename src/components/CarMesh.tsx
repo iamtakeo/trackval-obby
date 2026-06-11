@@ -11,10 +11,10 @@ import { CarModel } from './CarModel';
 
 // A simple adapter to allow CartesianPhysics to query the mathematical track spline
 class CartesianTrackAdapter implements TrackGeometry {
-  curve: THREE.CatmullRomCurve3;
+  curve: THREE.Curve<THREE.Vector3>;
   frames: { tangents: THREE.Vector3[], normals: THREE.Vector3[], binormals: THREE.Vector3[] };
 
-  constructor(curve: THREE.CatmullRomCurve3, frames: { tangents: THREE.Vector3[], normals: THREE.Vector3[], binormals: THREE.Vector3[] }) {
+  constructor(curve: THREE.Curve<THREE.Vector3>, frames: { tangents: THREE.Vector3[], normals: THREE.Vector3[], binormals: THREE.Vector3[] }) {
     this.curve = curve;
     this.frames = frames;
   }

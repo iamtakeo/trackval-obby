@@ -2,9 +2,13 @@ import type { TrackDNA, SplinePoint } from './types';
 
 
 
+export type MathematicalSegment = 
+    | { type: 'catmull'; points: SplinePoint[] }
+    | { type: 'loop'; startPoint: SplinePoint; radius: number; drift: number; endBank: number };
+
 export class MathOracle {
-    static generateSpline(dna: TrackDNA, samplesPerSegment: number = 10): SplinePoint[] {
-        const points: SplinePoint[] = [];
+    static generateMathematicalSegments(dna: TrackDNA, samplesPerSegment: number = 10): MathematicalSegment[] {
+        const segments: MathematicalSegment[] = [];
         
         let px = 0;
         let py = 0;
@@ -14,7 +18,20 @@ export class MathOracle {
         const initialWidth = dna.segments.length > 0 ? dna.segments[0].width : 10;
         const initialBank = dna.segments.length > 0 ? dna.segments[0].bankAngle : 0;
 
-        points.push({
+        let currentCatmullPoints: SplinePoint[] = [];
+
+        const pushCatmullPoint = (p: SplinePoint) => {
+            currentCatmullPoints.push(p);
+        };
+
+        const flushCatmull = () => {
+            if (currentCatmullPoints.length > 0) {
+                segments.push({ type: 'catmull', points: currentCatmullPoints });
+                currentCatmullPoints = [];
+            }
+        };
+
+        pushCatmullPoint({
             position: [px, py, pz],
             width: initialWidth,
             bank: initialBank,
@@ -25,51 +42,68 @@ export class MathOracle {
             const seg = dna.segments[sIdx];
             
             const startZ = pz;
-            const startBank = points[points.length - 1].bank;
-            const deltaBank = seg.bankAngle - startBank;
-            const startWidth = points[points.length - 1].width || 10;
-            const deltaWidth = seg.width - startWidth;
+            let startBank = initialBank;
+            let startWidth = initialWidth;
             
-            const samples = seg.type === 'loop' ? 20 : Math.max(2, samplesPerSegment);
+            if (currentCatmullPoints.length > 0) {
+                startBank = currentCatmullPoints[currentCatmullPoints.length - 1].bank;
+                startWidth = currentCatmullPoints[currentCatmullPoints.length - 1].width;
+            } else if (segments.length > 0) {
+                const lastSeg = segments[segments.length - 1];
+                if (lastSeg.type === 'catmull') {
+                    startBank = lastSeg.points[lastSeg.points.length - 1].bank;
+                    startWidth = lastSeg.points[lastSeg.points.length - 1].width;
+                } else {
+                    startBank = lastSeg.endBank; 
+                    startWidth = lastSeg.startPoint.width;
+                }
+            }
+
+            const deltaBank = seg.bankAngle - startBank;
+            const deltaWidth = seg.width - startWidth;
+            const samples = Math.max(2, samplesPerSegment);
 
             if (seg.type === 'loop') {
-                const R = Math.max(10, seg.radius); // Minimum loop radius
-                const drift = seg.width * 2.0; // Lateral offset to avoid intersection
+                flushCatmull();
                 
-                for (let i = 1; i <= samples; i++) {
-                    const t = i / samples;
-                    const angle = 2 * Math.PI * t;
-                    
-                    const forward = R * Math.sin(angle);
-                    const lateral = drift * t; // Drifting left
-                    
-                    const currPx = px + forward * Math.cos(yaw) - lateral * Math.sin(yaw);
-                    const currPy = py + forward * Math.sin(yaw) + lateral * Math.cos(yaw);
-                    const currPz = startZ + R - R * Math.cos(angle);
-                    
-                    points.push({
-                        position: [currPx, currPy, currPz],
-                        width: startWidth + deltaWidth * t,
-                        bank: startBank + deltaBank * t,
-                        isLoop: true
-                    });
-                }
+                const R = Math.max(10, seg.radius); 
+                const drift = seg.width * 2.0; 
                 
-                // Advance state
+                const startPoint: SplinePoint = {
+                    position: [px, py, pz],
+                    width: startWidth,
+                    bank: startBank,
+                    isLoop: true
+                };
+
+                segments.push({
+                    type: 'loop',
+                    startPoint,
+                    radius: R,
+                    drift: drift,
+                    endBank: seg.bankAngle
+                });
+                
                 px = px - drift * Math.sin(yaw);
                 py = py + drift * Math.cos(yaw);
                 pz = startZ;
+                
+                pushCatmullPoint({
+                    position: [px, py, pz],
+                    width: seg.width,
+                    bank: seg.bankAngle,
+                    isLoop: false
+                });
+                
                 continue;
             }
 
-            // Normal curve/straight logic
             const isStraight = Math.abs(seg.sweepAngle) < 0.0001;
             const deltaYaw = seg.sweepAngle;
             const deltaZ = seg.elevation;
             
             for (let i = 1; i <= samples; i++) {
                 const t = i / samples;
-                
                 let currPx, currPy, currPz;
                 
                 if (!isStraight) {
@@ -87,7 +121,7 @@ export class MathOracle {
                     currPz = startZ + deltaZ * t;
                 }
                 
-                points.push({
+                pushCatmullPoint({
                     position: [currPx, currPy, currPz],
                     width: startWidth + deltaWidth * t,
                     bank: startBank + deltaBank * t,
@@ -108,6 +142,7 @@ export class MathOracle {
             yaw = yaw + deltaYaw;
         }
         
-        return points;
+        flushCatmull();
+        return segments;
     }
 }

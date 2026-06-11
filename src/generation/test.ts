@@ -11,8 +11,8 @@ console.log("Running GA...");
 const bestTrack = ga.run();
 console.log("Best Track DNA:", JSON.stringify(bestTrack, null, 2));
 
-console.log("Generating Spline points...");
-const spline = MathOracle.generateSpline(bestTrack, 5);
-console.log(`Generated ${spline.length} points.`);
-console.log("First point:", spline[0]);
-console.log("Last point:", spline[spline.length - 1]);
+console.log("Generating Segments...");
+const segments = MathOracle.generateMathematicalSegments(bestTrack, 5);
+console.log(`Generated ${segments.length} segments.`);
+console.log("First segment:", segments[0]);
+console.log("Last segment:", segments[segments.length - 1]);
