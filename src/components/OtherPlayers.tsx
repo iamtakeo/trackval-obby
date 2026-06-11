@@ -10,6 +10,7 @@ interface Player {
   rotation: [number, number, number];
   color?: string;
   appearance?: CarAppearance;
+  isSpectating?: boolean;
 }
 
 interface OtherPlayersProps {
@@ -47,8 +48,10 @@ function RemoteCar({ player }: { player: Player }) {
 export function OtherPlayers({ players }: OtherPlayersProps) {
   return (
     <group>
-      {Object.values(players).map((p) => (
-        <RemoteCar key={p.id} player={p} />
+      {Object.values(players)
+        .filter(p => !p.isSpectating)
+        .map((p) => (
+          <RemoteCar key={p.id} player={p} />
       ))}
     </group>
   );

@@ -147,6 +147,14 @@ export function GeneratorMenu() {
           <button style={buttonStyle} onClick={() => setCurrentMenu('garage')} onMouseOver={e => e.currentTarget.style.borderColor = '#ffaa00'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Garage (Customize Car)</button>
           <button style={buttonStyle} onClick={() => setCurrentMenu('generator')} onMouseOver={e => e.currentTarget.style.borderColor = '#00e5ff'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Track Generator</button>
           <button style={buttonStyle} onClick={() => setCurrentMenu('parameters')} onMouseOver={e => e.currentTarget.style.borderColor = '#ff0055'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Car Parameters</button>
+          <button 
+            style={{ ...buttonStyle, borderColor: gameStore.getIsSpectating() ? '#ff00ff' : '#555' }} 
+            onClick={() => gameStore.setIsSpectating(!gameStore.getIsSpectating())}
+            onMouseOver={e => e.currentTarget.style.borderColor = '#ff00ff'} 
+            onMouseOut={e => e.currentTarget.style.borderColor = gameStore.getIsSpectating() ? '#ff00ff' : '#555'}
+          >
+            {gameStore.getIsSpectating() ? 'Exit Spectate Mode' : 'Spectate Free-Cam'}
+          </button>
           <button style={{ ...buttonStyle, background: 'transparent', borderColor: '#888' }} onClick={() => gameStore.setMenuOpen(false)}>Resume Game</button>
         </div>
       )}
@@ -416,7 +424,7 @@ export function GeneratorMenu() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto', marginBottom: '20px' }}>
               <div style={{ padding: '12px', background: 'rgba(0, 255, 170, 0.1)', border: '1px solid #00ffaa', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                <strong style={{ color: '#00ffaa' }}>{myName} (You)</strong>
+                <strong style={{ color: '#00ffaa' }}>{myName} (You){gameStore.getIsSpectating() ? ' (Spectating)' : ''}</strong>
                 <span style={{ fontSize: '12px', opacity: 0.7 }}>Local</span>
               </div>
               
@@ -424,7 +432,7 @@ export function GeneratorMenu() {
                 .filter((p: any) => p.id !== socketId)
                 .map((p: any) => (
                 <div key={p.id} style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid #444', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{p.name || 'Ghost Driver'}</span>
+                  <span>{p.name || 'Ghost Driver'}{p.isSpectating ? ' (Spectating)' : ''}</span>
                 </div>
               ))}
               

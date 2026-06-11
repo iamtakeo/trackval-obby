@@ -42,6 +42,7 @@ class GameStore {
     underglowColor: '#00e5ff',
     accessory: 'none'
   };
+  private isSpectating = false;
   private connectedPlayers: Record<string, any> = {};
   private ramps: RampData[] = defaultRamps;
   private listeners = new Set<Listener>();
@@ -105,6 +106,15 @@ class GameStore {
   }
 
   getMenuOpen = () => this.isMenuOpen;
+
+  setIsSpectating(isSpectating: boolean) {
+    if (this.isSpectating !== isSpectating) {
+      this.isSpectating = isSpectating;
+      this.emit();
+    }
+  }
+
+  getIsSpectating = () => this.isSpectating;
 
   setCarParameters(params: Partial<CartesianCapabilities>) {
     this.carParameters = { ...this.carParameters, ...params };

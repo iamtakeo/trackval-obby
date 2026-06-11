@@ -12,6 +12,7 @@ export interface Player {
   color?: string;
   name?: string;
   appearance?: CarAppearance;
+  isSpectating?: boolean;
 }
 
 const PARTY_HOST = "trackval-obby.iamtakeo.partykit.dev";
@@ -75,7 +76,8 @@ export function useMultiplayer() {
                 rotation: data.rotation || player.rotation,
                 color: data.color || player.color,
                 name: data.name || player.name,
-                appearance: data.appearance || player.appearance
+                appearance: data.appearance || player.appearance,
+                isSpectating: data.isSpectating !== undefined ? data.isSpectating : player.isSpectating
               }
             });
             break;

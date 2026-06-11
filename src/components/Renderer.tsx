@@ -11,13 +11,16 @@ import { gameStore } from '../store';
 import { generateTrackCurve } from '../utils/trackGenerator';
 import type { TrackData } from '../utils/trackGenerator';
 import { generateRamps } from '../utils/rampData';
+import { SpectatorCamera } from './SpectatorCamera';
 
 export function Renderer() {
   const [trackData, setTrackData] = useState<TrackData | null>(gameStore.getTrackData());
+  const [isSpectating, setIsSpectating] = useState(gameStore.getIsSpectating());
 
   useEffect(() => {
     const unsubscribe = gameStore.subscribe(() => {
       setTrackData(gameStore.getTrackData());
+      setIsSpectating(gameStore.getIsSpectating());
     });
     return unsubscribe;
   }, []);
@@ -49,6 +52,13 @@ export function Renderer() {
       return () => clearTimeout(timer);
     }
   }, [isConnected, trackData, broadcastTrack]);
+
+  // Broadcast spectating status when it changes
+  useEffect(() => {
+    if (isConnected) {
+      updateMyState({ isSpectating });
+    }
+  }, [isSpectating, isConnected, updateMyState]);
 
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
@@ -82,7 +92,10 @@ export function Renderer() {
         {/* Game Entities */}
         <RampsMesh />
         {trackData && <TrackMesh trackData={trackData} />}
-        {trackData && <CarMesh trackData={trackData} updateMyState={updateMyState} />}
+        
+        {trackData && !isSpectating && <CarMesh trackData={trackData} updateMyState={updateMyState} />}
+        {isSpectating && <SpectatorCamera />}
+        
         <OtherPlayers players={remotePlayers} />
       </Canvas>
     </div>
