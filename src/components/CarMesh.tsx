@@ -143,23 +143,23 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
     carRef.current.up.lerp(up, 1.0 - Math.exp(-6.0 * dt));
     
     // Calculate dynamic hover offset to prevent long cars from clipping into concave curves
-    // up.y is 1.0 on flat ground, approaches 0 on vertical walls
-    const slopeOffset = (1.0 - up.y) * 2.5; 
+    // Math.max(0, ...) ensures we don't apply negative offsets when upside down
+    const slopeOffset = Math.max(0, 1.0 - up.y) * 2.5; 
+    const hoverDist = 0.75 + slopeOffset;
     
-    const targetY = pos.y + 0.75 + slopeOffset; // base hover + slope compensation
-    
-    // Simulate suspension by only lerping the Y coordinate, keeping XZ perfectly synced with physics
-    carRef.current.position.x = pos.x;
-    carRef.current.position.z = pos.z;
-    carRef.current.position.y = THREE.MathUtils.lerp(
-      carRef.current.position.y, 
-      targetY,
-      1.0 - Math.exp(-15.0 * dt)
+    const targetPos = new THREE.Vector3(
+        pos.x + up.x * hoverDist,
+        pos.y + up.y * hoverDist,
+        pos.z + up.z * hoverDist
     );
     
-    // Hard clamp: if the visual mesh lags too far behind the physics floor at high speeds, force it up!
-    if (carRef.current.position.y < targetY - 0.5) {
-      carRef.current.position.y = targetY - 0.5;
+    // Simulate suspension by lerping the full 3D position towards the target hover spot
+    carRef.current.position.lerp(targetPos, 1.0 - Math.exp(-15.0 * dt));
+    
+    // Hard clamp distance to physics pos to prevent visual lagging
+    const distToPhysicsSq = carRef.current.position.distanceToSquared(pos);
+    if (distToPhysicsSq > 25.0) { // 5 units
+        carRef.current.position.copy(targetPos);
     }
 
     // Apply heading

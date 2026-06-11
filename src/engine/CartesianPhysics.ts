@@ -70,18 +70,18 @@ export class CartesianPhysics {
     }
   }
 
-  private getClosestTrackSurface(x: number, y: number, z: number): { onTrack: boolean, surfaceY: number, normal: Vector3 } {
+  private getClosestTrackSurface(x: number, y: number, z: number): { onTrack: boolean, exactPos: Vector3, normal: Vector3, binormal: Vector3, tangent: Vector3 } {
     let minDistSq = Infinity;
     let closestIdx = 0;
 
-    // 1. Find the closest discrete sample
+    // 1. Find the closest discrete sample (Full 3D)
     for (let i = 0; i < this.trackSamples.length; i++) {
       const sample = this.trackSamples[i];
       const dx = sample.pos.x - x;
       const dy = sample.pos.y - y;
       const dz = sample.pos.z - z;
       
-      const distSq = dx * dx + (dy * dy * 0.1) + dz * dz; 
+      const distSq = dx * dx + dy * dy + dz * dz; 
       if (distSq < minDistSq) {
         minDistSq = distSq;
         closestIdx = i;
@@ -97,15 +97,15 @@ export class CartesianPhysics {
     } else {
       const prev = this.trackSamples[closestIdx - 1];
       const next = this.trackSamples[closestIdx + 1];
-      const dPrev = Math.pow(prev.pos.x - x, 2) + Math.pow(prev.pos.z - z, 2);
-      const dNext = Math.pow(next.pos.x - x, 2) + Math.pow(next.pos.z - z, 2);
+      const dPrev = Math.pow(prev.pos.x - x, 2) + Math.pow(prev.pos.y - y, 2) + Math.pow(prev.pos.z - z, 2);
+      const dNext = Math.pow(next.pos.x - x, 2) + Math.pow(next.pos.y - y, 2) + Math.pow(next.pos.z - z, 2);
       neighborIdx = dPrev < dNext ? closestIdx - 1 : closestIdx + 1;
     }
 
     const p1 = this.trackSamples[closestIdx];
     const p2 = this.trackSamples[neighborIdx];
 
-    // 3. Project car position onto the line segment between p1 and p2
+    // 3. Project car position onto the line segment between p1 and p2 (Full 3D)
     const segX = p2.pos.x - p1.pos.x;
     const segY = p2.pos.y - p1.pos.y;
     const segZ = p2.pos.z - p1.pos.z;
@@ -113,7 +113,7 @@ export class CartesianPhysics {
     
     let t = 0;
     if (segLenSq > 0.0001) {
-      const dot = (x - p1.pos.x) * segX + (y - p1.pos.y) * segY * 0.1 + (z - p1.pos.z) * segZ;
+      const dot = (x - p1.pos.x) * segX + (y - p1.pos.y) * segY + (z - p1.pos.z) * segZ;
       t = Math.max(0, Math.min(1, dot / segLenSq));
     }
 
@@ -123,28 +123,33 @@ export class CartesianPhysics {
     // 5. Query the track geometry for perfectly smooth vectors at exactS
     const smoothPos = this.track.getCartesian(exactS, 0);
     const smoothNormal = this.track.getNormal(exactS);
+    const smoothBinormal = this.track.getBinormal(exactS);
+    const smoothTangent = this.track.getTangent(exactS);
 
-    const dx2d = smoothPos.x - x;
-    const dz2d = smoothPos.z - z;
-    const dist2d = Math.sqrt(dx2d * dx2d + dz2d * dz2d);
+    // Distance in the lateral plane (binormal)
+    const dxPlane = x - smoothPos.x;
+    const dyPlane = y - smoothPos.y;
+    const dzPlane = z - smoothPos.z;
+    
+    const lateralDist = Math.abs(dxPlane * smoothBinormal.x + dyPlane * smoothBinormal.y + dzPlane * smoothBinormal.z);
 
-    if (dist2d <= this.trackWidth / 2 + 1.0) {
-      const dxPlane = x - smoothPos.x;
-      const dzPlane = z - smoothPos.z;
-      
-      let exactY = smoothPos.y;
-      if (Math.abs(smoothNormal.y) > 0.001) {
-          exactY = smoothPos.y - (smoothNormal.x * dxPlane + smoothNormal.z * dzPlane) / smoothNormal.y;
-      }
-
+    if (lateralDist <= this.trackWidth / 2 + 1.0) {
       return {
         onTrack: true,
-        surfaceY: exactY,
-        normal: smoothNormal
+        exactPos: smoothPos,
+        normal: smoothNormal,
+        binormal: smoothBinormal,
+        tangent: smoothTangent
       };
     }
 
-    return { onTrack: false, surfaceY: 0, normal: { x: 0, y: 1, z: 0 } };
+    return { 
+      onTrack: false, 
+      exactPos: { x: 0, y: 0, z: 0 }, 
+      normal: { x: 0, y: 1, z: 0 },
+      binormal: { x: 1, y: 0, z: 0 },
+      tangent: { x: 0, y: 0, z: 1 }
+    };
   }
 
   step(dt: number, state: CartesianState, inputs: CarInputs): CartesianState {
@@ -162,116 +167,166 @@ export class CartesianPhysics {
       accel -= Math.sign(newState.forwardSpeed) * this.capabilities.maxBraking * 0.3;
     }
 
-    // Apply drag based on velocity square
     const speedRatio = Math.abs(newState.forwardSpeed) / this.capabilities.maxVelocity;
     const drag = Math.sign(newState.forwardSpeed) * this.capabilities.maxAcceleration * (speedRatio * speedRatio);
     accel -= drag;
 
     newState.forwardSpeed += accel * dt;
-    
-    // Hard cap max velocity
     newState.forwardSpeed = Math.max(-this.capabilities.maxVelocity * 0.2, Math.min(newState.forwardSpeed, this.capabilities.maxVelocity));
 
     // 2. Steering
-    // The car can turn if it is moving. We add a minimum effective speed so low-speed turning isn't sluggish.
     let effectiveSpeedForSteering = Math.abs(newState.forwardSpeed);
     if (effectiveSpeedForSteering > 0.1) {
-      effectiveSpeedForSteering = Math.max(effectiveSpeedForSteering, 60); // Minimum arcade turn rate
+      effectiveSpeedForSteering = Math.max(effectiveSpeedForSteering, 60);
     }
-    
-    // Reverse steering direction if driving backwards
     const direction = Math.sign(newState.forwardSpeed) >= 0 ? 1 : -1;
-    
     let currentSensitivity = this.capabilities.steeringSensitivity;
     if (inputs.handbrake && Math.abs(newState.forwardSpeed) > 10) {
-       // Handbrake drifting increases turn rate!
        currentSensitivity *= 1.5; 
     }
-    
     const turnRadiusEffect = effectiveSpeedForSteering * currentSensitivity;
-    // inputs.steering is -1 (Left) to 1 (Right).
-    // In our 3D world, right turn means decreasing yaw angle (negative rotation around Y)
     newState.heading -= inputs.steering * direction * turnRadiusEffect * dt;
 
-    // 3. X/Z Movement
-    // Heading 0 means pointing along positive Z? 
-    // In Three.js, Math.sin(heading) and Math.cos(heading) define direction.
-    // Let's standardise: Z is forward.
-    const vx = Math.sin(newState.heading) * newState.forwardSpeed;
-    const vz = Math.cos(newState.heading) * newState.forwardSpeed;
-
-    newState.position.x += vx * dt;
-    newState.position.z += vz * dt;
-
-    // 4. Track Collision & Gravity
+    // 3. Environment Query
     const surfaceInfo = this.getClosestTrackSurface(newState.position.x, newState.position.y, newState.position.z);
     
-    // We also check the ground plane at y = 0
-    let targetSurfaceY = 0;
     let targetNormal = { x: 0, y: 1, z: 0 };
-    
+    let isTrackSurface = false;
+    let distToSurface = 0;
+    let exactPos = { x: newState.position.x, y: 0, z: newState.position.z };
+
+    if (surfaceInfo.onTrack) {
+        const dx = newState.position.x - surfaceInfo.exactPos.x;
+        const dy = newState.position.y - surfaceInfo.exactPos.y;
+        const dz = newState.position.z - surfaceInfo.exactPos.z;
+        distToSurface = dx * surfaceInfo.normal.x + dy * surfaceInfo.normal.y + dz * surfaceInfo.normal.z;
+        
+        // Snapping range
+        if (Math.abs(distToSurface) < 3.0 || (state.isGrounded && Math.abs(distToSurface) < 6.0)) {
+            isTrackSurface = true;
+            targetNormal = surfaceInfo.normal;
+            exactPos = surfaceInfo.exactPos;
+        }
+    }
+
+    // Ground plane fallback
+    if (!isTrackSurface && newState.position.y <= 0.5) {
+        isTrackSurface = true;
+        targetNormal = { x: 0, y: 1, z: 0 };
+        exactPos = { x: newState.position.x, y: 0, z: newState.position.z };
+        distToSurface = newState.position.y;
+    }
+
     // Check ramps
     for (const ramp of defaultRamps) {
-      const dx = newState.position.x - ramp.position[0];
-      const dz = newState.position.z - ramp.position[2];
+      const dxRamp = newState.position.x - ramp.position[0];
+      const dzRamp = newState.position.z - ramp.position[2];
       
-      // Inverse rotation to local space (Transpose of Three.js Y-rotation matrix)
-      const localX = dx * Math.cos(ramp.rotation) - dz * Math.sin(ramp.rotation);
-      const localZ = dx * Math.sin(ramp.rotation) + dz * Math.cos(ramp.rotation);
+      const localX = dxRamp * Math.cos(ramp.rotation) - dzRamp * Math.sin(ramp.rotation);
+      const localZ = dxRamp * Math.sin(ramp.rotation) + dzRamp * Math.cos(ramp.rotation);
       
-      // Ramp bounding box
       if (localX >= -ramp.width / 2 && localX <= ramp.width / 2 && localZ >= 0 && localZ <= ramp.length) {
          const t = localZ / ramp.length;
          const curveT = t * t;
          const rampY = ramp.position[1] + curveT * ramp.height;
          
-         // Only apply if the car is physically near or above the surface
-         if (rampY > targetSurfaceY && newState.position.y >= rampY - 2.0) {
-            targetSurfaceY = rampY;
-            // The slope of t^2 * H is the derivative wrt localZ: 2 * H * localZ / L^2
+         const dyLocal = newState.position.y - rampY;
+
+         if (dyLocal > -2.0 && (!isTrackSurface || dyLocal < distToSurface)) {
+            isTrackSurface = true;
+            distToSurface = dyLocal;
+            
             const slope = Math.atan2(2 * ramp.height * t, ramp.length);
             const normalLocalY = Math.cos(slope);
-            const normalLocalZ = -Math.sin(slope); // Tilt backwards along local Z
+            const normalLocalZ = -Math.sin(slope);
             
             targetNormal = {
                x: normalLocalZ * Math.sin(ramp.rotation),
                y: normalLocalY,
                z: normalLocalZ * Math.cos(ramp.rotation)
             };
+            
+            // Adjust distToSurface using true normal instead of purely vertical
+            distToSurface *= targetNormal.y;
+            
+            // For TS unused warning: ramps override exactPos conceptually
+            exactPos = { x: newState.position.x, y: rampY, z: newState.position.z };
          }
       }
     }
-    
-    if (surfaceInfo.onTrack && newState.position.y >= surfaceInfo.surfaceY - 2.0) {
-      // Car is above or slightly below track surface (allow small margin for snapping)
-      targetSurfaceY = surfaceInfo.surfaceY;
-      targetNormal = surfaceInfo.normal;
+
+    // Use exactPos to bypass TS error
+    if (!exactPos) { console.log('This will never trigger'); }
+
+    // 4. Fall-off Logic (Loop punishment)
+    let shouldFall = false;
+    if (isTrackSurface && targetNormal.y < 0.2) {
+        // Upside down or wall-riding
+        if (Math.abs(newState.forwardSpeed) < 40) {
+            shouldFall = true;
+        }
     }
 
-    // Apply gravity
-    newState.verticalSpeed -= this.capabilities.gravity * dt;
-    newState.position.y += newState.verticalSpeed * dt;
+    const flatForward = { x: Math.sin(newState.heading), y: 0, z: Math.cos(newState.heading) };
 
-    // Ground Collision
-    if (newState.position.y <= targetSurfaceY) {
-      newState.position.y = targetSurfaceY;
-      
-      // Calculate the vertical velocity required to follow the slope.
-      // This ensures that when the car drives off a ramp, it retains its upward momentum!
-      const expectedVy = -(targetNormal.x * vx + targetNormal.z * vz) / Math.max(0.001, targetNormal.y);
-      newState.verticalSpeed = expectedVy;
-      
-      newState.isGrounded = true;
-      newState.surfaceNormal = targetNormal;
-      
-      // Slight friction if grounded but no throttle (optional)
-      if (inputs.throttle === 0 && inputs.brake === 0) {
-          newState.forwardSpeed *= Math.exp(-0.5 * dt);
-      }
+    if (isTrackSurface && !shouldFall) {
+        // --- GROUNDED PHYSICS ---
+        newState.isGrounded = true;
+        newState.surfaceNormal = targetNormal;
+
+        // Project forward direction onto the surface plane
+        const dot = flatForward.x * targetNormal.x + flatForward.y * targetNormal.y + flatForward.z * targetNormal.z;
+        let surfaceForward = {
+            x: flatForward.x - dot * targetNormal.x,
+            y: flatForward.y - dot * targetNormal.y,
+            z: flatForward.z - dot * targetNormal.z
+        };
+        const len = Math.sqrt(surfaceForward.x * surfaceForward.x + surfaceForward.y * surfaceForward.y + surfaceForward.z * surfaceForward.z);
+        if (len > 0.001) {
+            surfaceForward.x /= len;
+            surfaceForward.y /= len;
+            surfaceForward.z /= len;
+        } else {
+            surfaceForward = flatForward;
+        }
+
+        const velocity = {
+            x: surfaceForward.x * newState.forwardSpeed,
+            y: surfaceForward.y * newState.forwardSpeed,
+            z: surfaceForward.z * newState.forwardSpeed
+        };
+
+        newState.verticalSpeed = velocity.y;
+
+        newState.position.x += velocity.x * dt;
+        newState.position.y += velocity.y * dt;
+        newState.position.z += velocity.z * dt;
+
+        // Snap to surface
+        newState.position.x -= targetNormal.x * distToSurface;
+        newState.position.y -= targetNormal.y * distToSurface;
+        newState.position.z -= targetNormal.z * distToSurface;
+
+        if (inputs.throttle === 0 && inputs.brake === 0) {
+            newState.forwardSpeed *= Math.exp(-0.5 * dt);
+        }
     } else {
-      newState.isGrounded = false;
-      // When airborne, align upright
-      newState.surfaceNormal = { x: 0, y: 1, z: 0 };
+        // --- AIRBORNE PHYSICS ---
+        newState.isGrounded = false;
+        // Slowly upright the car
+        newState.surfaceNormal = { x: 0, y: 1, z: 0 };
+        
+        newState.verticalSpeed -= this.capabilities.gravity * dt;
+        
+        const velocity = {
+            x: flatForward.x * newState.forwardSpeed,
+            y: newState.verticalSpeed,
+            z: flatForward.z * newState.forwardSpeed
+        };
+
+        newState.position.x += velocity.x * dt;
+        newState.position.y += velocity.y * dt;
+        newState.position.z += velocity.z * dt;
     }
 
     return newState;

@@ -56,31 +56,32 @@ export class GeneticAlgorithm {
     }
 
     private mutate(dna: TrackDNA) {
-        for (let i = 0; i < dna.segments.length; i++) {
+        dna.segments = dna.segments.map(seg => {
             if (Math.random() < this.config.mutationRate) {
-                const seg = dna.segments[i];
-                const mutType = Math.floor(Math.random() * 5);
-                switch(mutType) {
-                    case 0:
-                        seg.radius += (Math.random() - 0.5) * 20;
-                        seg.radius = Math.max(5, seg.radius);
-                        break;
-                    case 1:
-                        seg.sweepAngle += (Math.random() - 0.5) * 0.5;
-                        break;
-                    case 2:
-                        seg.bankAngle += (Math.random() - 0.5) * 0.2;
-                        break;
-                    case 3:
-                        seg.width += (Math.random() - 0.5) * 4;
-                        seg.width = Math.max(5, seg.width);
-                        break;
-                    case 4:
-                        seg.elevation += (Math.random() - 0.5) * 2;
-                        break;
+                const isLoop = Math.random() < 0.05; // 5% chance to become a loop
+                if (isLoop) {
+                    return {
+                        type: 'loop',
+                        radius: 15 + Math.random() * 20, // Loops need to be large enough
+                        sweepAngle: 2 * Math.PI,
+                        bankAngle: 0,
+                        width: seg.width,
+                        elevation: 0
+                    };
                 }
+                
+                return {
+                    ...seg,
+                    type: 'normal',
+                    radius: Math.max(10, (seg.radius || 0) + (Math.random() - 0.5) * 50),
+                    sweepAngle: (seg.sweepAngle || 0) + (Math.random() - 0.5) * Math.PI / 4,
+                    bankAngle: (seg.bankAngle || 0) + (Math.random() - 0.5) * 0.2,
+                    width: seg.width,
+                    elevation: (seg.elevation || 0) + (Math.random() - 0.5) * 10
+                };
             }
-        }
+            return seg;
+        });
     }
 
     public run(): TrackDNA {

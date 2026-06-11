@@ -29,24 +29,63 @@ export class MathOracle {
         for (let sIdx = 0; sIdx < dna.segments.length; sIdx++) {
             const seg = dna.segments[sIdx];
             
-            // To safely avoid division by zero
-            const isStraight = Math.abs(seg.sweepAngle) < 0.0001;
-            
-            // Length of the segment
-            const arcLength = isStraight ? seg.radius : seg.radius * Math.abs(seg.sweepAngle);
-            const deltaYaw = seg.sweepAngle;
-            
             const startZ = pz;
-            const deltaZ = seg.elevation;
-            
             const startBank = points[points.length - 1].bank;
             const deltaBank = seg.bankAngle - startBank;
-            
             const startWidth = points[points.length - 1].width;
             const deltaWidth = seg.width - startWidth;
             
             const samples = Math.max(2, samplesPerSegment);
 
+            if (seg.type === 'loop') {
+                const R = Math.max(10, seg.radius); // Minimum loop radius
+                const drift = seg.width * 2.0; // Lateral offset to avoid intersection
+                
+                for (let i = 1; i <= samples; i++) {
+                    const t = i / samples;
+                    const angle = 2 * Math.PI * t;
+                    
+                    const forward = R * Math.sin(angle);
+                    const lateral = drift * t; // Drifting left
+                    
+                    const currPx = px + forward * Math.cos(yaw) - lateral * Math.sin(yaw);
+                    const currPy = py + forward * Math.sin(yaw) + lateral * Math.cos(yaw);
+                    const currPz = startZ + R - R * Math.cos(angle);
+                    
+                    // Derivatives for tangent
+                    const dForward = R * 2 * Math.PI * Math.cos(angle);
+                    const dLateral = drift;
+                    const dPz = R * 2 * Math.PI * Math.sin(angle);
+                    
+                    const tx = dForward * Math.cos(yaw) - dLateral * Math.sin(yaw);
+                    const ty = dForward * Math.sin(yaw) + dLateral * Math.cos(yaw);
+                    const tz = dPz;
+                    
+                    const tLen = Math.sqrt(tx * tx + ty * ty + tz * tz);
+                    
+                    points.push({
+                        position: [currPx, currPy, currPz],
+                        tangent: [tx / tLen, ty / tLen, tz / tLen],
+                        normal: [0, 0, 1], // Basic normal, to be replaced by Frenet frames
+                        width: startWidth + deltaWidth * t,
+                        bank: startBank + deltaBank * t
+                    });
+                }
+                
+                // Advance state
+                px = px - drift * Math.sin(yaw);
+                py = py + drift * Math.cos(yaw);
+                pz = startZ;
+                // yaw remains unchanged
+                continue;
+            }
+
+            // Normal curve/straight logic
+            const isStraight = Math.abs(seg.sweepAngle) < 0.0001;
+            const arcLength = isStraight ? seg.radius : seg.radius * Math.abs(seg.sweepAngle);
+            const deltaYaw = seg.sweepAngle;
+            const deltaZ = seg.elevation;
+            
             for (let i = 1; i <= samples; i++) {
                 const t = i / samples;
                 const currentYaw = yaw + deltaYaw * t;
@@ -66,7 +105,7 @@ export class MathOracle {
                     tx = Math.cos(currentYaw);
                     ty = Math.sin(currentYaw);
                 } else {
-                    const length = seg.radius; // When sweepAngle ~ 0, radius acts as length
+                    const length = seg.radius;
                     currPx = px + length * t * Math.cos(yaw);
                     currPy = py + length * t * Math.sin(yaw);
                     currPz = startZ + deltaZ * t;
@@ -78,20 +117,18 @@ export class MathOracle {
                 tz = deltaZ / (arcLength > 0.001 ? arcLength : 1);
                 const tLen = Math.sqrt(tx * tx + ty * ty + tz * tz);
                 
-                // Normal without bank (pointing left)
                 const nx = -Math.sin(currentYaw);
                 const ny = Math.cos(currentYaw);
                 
                 points.push({
                     position: [currPx, currPy, currPz],
                     tangent: [tx / tLen, ty / tLen, tz / tLen],
-                    normal: [nx, ny, 0], // True 3D normal requires cross products with bank, keeping it simple in XY for base
+                    normal: [nx, ny, 0],
                     width: startWidth + deltaWidth * t,
                     bank: startBank + deltaBank * t
                 });
             }
             
-            // Advance state
             if (!isStraight) {
                 const R = seg.radius * Math.sign(seg.sweepAngle);
                 px = px - R * Math.sin(yaw) + R * Math.sin(yaw + deltaYaw);

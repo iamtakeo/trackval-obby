@@ -17,28 +17,18 @@ export interface TrackData {
 }
 
 export function computeFixedUpFrames(curve: THREE.CatmullRomCurve3, segments: number, splinePoints?: any[]) {
-  const tangents = [];
-  const normals = [];
-  const binormals = [];
-
-  const up = new THREE.Vector3(0, 1, 0);
+  // Use Three.js native Parallel Transport Frames (solves Gimbal Lock for loops)
+  const frames = curve.computeFrenetFrames(segments, curve.closed);
+  
+  const tangents = frames.tangents;
+  const normals = frames.normals;
+  const binormals = frames.binormals;
 
   for (let i = 0; i <= segments; i++) {
     const u = i / segments;
-    const tangent = curve.getTangentAt(u).normalize();
-    tangents.push(tangent);
-
-    // binormal is horizontal (perpendicular to tangent and global UP)
-    const binormal = new THREE.Vector3().crossVectors(tangent, up);
-    
-    if (binormal.lengthSq() < 0.0001) {
-      binormal.copy(binormals[i - 1] || new THREE.Vector3(1, 0, 0));
-    } else {
-      binormal.normalize();
-    }
-    
-    // normal is perpendicular to binormal and tangent (this will be our UP vector)
-    const normal = new THREE.Vector3().crossVectors(binormal, tangent).normalize();
+    const tangent = tangents[i];
+    const normal = normals[i];
+    const binormal = binormals[i];
 
     // Apply track banking if splinePoints are provided
     if (splinePoints && splinePoints.length > 0) {
@@ -56,9 +46,6 @@ export function computeFixedUpFrames(curve: THREE.CatmullRomCurve3, segments: nu
         binormal.applyQuaternion(bankQuat);
       }
     }
-
-    binormals.push(binormal);
-    normals.push(normal);
   }
 
   return { tangents, normals, binormals };
