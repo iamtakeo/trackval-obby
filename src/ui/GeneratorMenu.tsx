@@ -47,7 +47,7 @@ export function GeneratorMenu() {
       try {
         const result = generateTrackCurve({
           segmentsPerTrack: segments,
-          generations: generations,
+          generations: isClosed ? Math.max(100, generations) : generations,
           isClosed: isClosed,
           loopChance: loopChance,
           turnChance: turnChance,

@@ -180,6 +180,7 @@ function buildTrackCurve(segments: MathematicalSegment[], dna?: TrackDNA): Track
         
         worldSegments.push({
             type: 'catmull',
+            isClosingSegment: true,
             points: [
                 { width: startWidth },
                 { width: endWidth }
@@ -258,6 +259,29 @@ export function computeFixedUpFrames(curvePath: THREE.CurvePath<THREE.Vector3>, 
     
     // We omit banking logic for now to keep things mathematically pure, 
     // loops don't need banking, and curves can function on normal up vectors.
+  }
+
+  // Smoothly blend the binormals across the closing gap so there is absolutely no twisted geometric seam!
+  const isClosedTrack = worldSegments.length > 0 && worldSegments[worldSegments.length - 1].isClosingSegment;
+  if (isClosedTrack) {
+      const blendSteps = Math.floor(steps * 0.1); // Blend over the last 10% of the track
+      const finalBinormal = binormals[steps];
+      const targetBinormal = binormals[0];
+      
+      let angle = finalBinormal.angleTo(targetBinormal);
+      const cross = new THREE.Vector3().crossVectors(finalBinormal, targetBinormal);
+      if (cross.dot(tangents[steps]) < 0) {
+          angle = -angle;
+      }
+      
+      for (let i = steps - blendSteps; i <= steps; i++) {
+          const t = (i - (steps - blendSteps)) / blendSteps;
+          const smoothT = t * t * (3 - 2 * t);
+          const twist = angle * smoothT;
+          
+          binormals[i].applyAxisAngle(tangents[i], twist).normalize();
+          normals[i].crossVectors(binormals[i], tangents[i]).normalize();
+      }
   }
 
   return { tangents, normals, binormals, widths };
