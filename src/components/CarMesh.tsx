@@ -101,7 +101,7 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
     const startHeading = Math.atan2(startTangent.x, startTangent.z);
     
     return {
-      position: { x: startPos.x, y: startPos.y + 5, z: startPos.z }, // drop from slightly above
+      position: { x: startPos.x, y: startPos.y + 1.0, z: startPos.z }, // spawn within physics snapping range
       velocity: { x: 0, y: 0, z: 0 },
       forwardSpeed: 0,
       verticalSpeed: 0,

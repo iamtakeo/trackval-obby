@@ -46,6 +46,14 @@ export function TrackMesh({ trackData }: TrackMeshProps) {
       const t = i / numPillars;
       const pos = trackData.curve.getPointAt(t);
       
+      const frameIndex = Math.round(t * (trackData.frames.normals.length - 1));
+      const normal = trackData.frames.normals[frameIndex];
+      
+      // Skip pillars if track is steep, banked, or upside down
+      if (normal.y < 0.5) {
+          continue;
+      }
+      
       const height = pos.y - groundY;
       const centerY = groundY + height / 2;
       

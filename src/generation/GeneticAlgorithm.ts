@@ -82,6 +82,13 @@ export class GeneticAlgorithm {
             }
             return seg;
         });
+
+        // Ensure loops have no camber approaching them
+        for (let i = 1; i < dna.segments.length; i++) {
+            if (dna.segments[i].type === 'loop') {
+                dna.segments[i - 1].bankAngle = 0;
+            }
+        }
     }
 
     public run(): TrackDNA {
