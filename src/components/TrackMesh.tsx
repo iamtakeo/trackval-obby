@@ -8,34 +8,65 @@ interface TrackMeshProps {
 
 export function TrackMesh({ trackData }: TrackMeshProps) {
   const { geometry, pillarData } = useMemo(() => {
-    // 1. Create the Track Extrusion
-    const shape = new THREE.Shape();
-    const width = 12;
-    const depth = 1;
+    // 1. Create the Track BufferGeometry
+    const steps = 400;
+    const depth = 1.0;
     
-    // Through visual confirmation, ExtrudeGeometry maps Shape X to the vertical vector, and Shape Y to the horizontal vector.
-    // To make the track lay flat, Shape X must be depth (thickness) and Shape Y must be width.
-    shape.moveTo(-depth / 2, -width / 2);
-    shape.lineTo(depth / 2, -width / 2);
-    shape.lineTo(depth / 2, width / 2);
-    shape.lineTo(-depth / 2, width / 2);
-    shape.lineTo(-depth / 2, -width / 2);
+    const positions: number[] = [];
+    const indices: number[] = [];
 
-    const extrudeSettings = {
-      steps: 400,
-      bevelEnabled: true,
-      bevelSegments: 2,
-      bevelSize: 0.2,
-      bevelThickness: 0.2,
-      extrudePath: trackData.curve,
-    } as any;
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      const pos = trackData.curve.getPointAt(u);
+      
+      const width = trackData.frames.widths[i] || 12;
+      const normal = trackData.frames.normals[i];
+      const binormal = trackData.frames.binormals[i];
+      
+      // Top surface left/right
+      const topOffset = normal.clone().multiplyScalar(depth / 2);
+      const bottomOffset = normal.clone().multiplyScalar(-depth / 2);
+      const leftOffset = binormal.clone().multiplyScalar(-width / 2);
+      const rightOffset = binormal.clone().multiplyScalar(width / 2);
 
-    // ExtrudeGeometry completely ignores the `frames` property in modern Three.js,
-    // and calculates its own un-banked FrenetFrames internally.
-    // By overriding the method on the curve instance, we force it to use our custom banked frames!
-    trackData.curve.computeFrenetFrames = () => trackData.frames;
+      const tl = pos.clone().add(topOffset).add(leftOffset);
+      const tr = pos.clone().add(topOffset).add(rightOffset);
+      const bl = pos.clone().add(bottomOffset).add(leftOffset);
+      const br = pos.clone().add(bottomOffset).add(rightOffset);
 
-    const trackGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+      positions.push(
+        tl.x, tl.y, tl.z,
+        tr.x, tr.y, tr.z,
+        bl.x, bl.y, bl.z,
+        br.x, br.y, br.z
+      );
+
+      if (i < steps) {
+        const row = i * 4;
+        const nextRow = (i + 1) * 4;
+
+        // Top face
+        indices.push(row, row + 1, nextRow);
+        indices.push(row + 1, nextRow + 1, nextRow);
+
+        // Bottom face
+        indices.push(row + 2, nextRow + 2, row + 3);
+        indices.push(row + 3, nextRow + 2, nextRow + 3);
+
+        // Left face
+        indices.push(row + 2, row, nextRow + 2);
+        indices.push(row, nextRow, nextRow + 2);
+
+        // Right face
+        indices.push(row + 1, row + 3, nextRow + 1);
+        indices.push(row + 3, nextRow + 3, nextRow + 1);
+      }
+    }
+
+    const trackGeo = new THREE.BufferGeometry();
+    trackGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    trackGeo.setIndex(indices);
+    trackGeo.computeVertexNormals();
 
     // 2. Compute Pillar Positions
     const numPillars = 50; 

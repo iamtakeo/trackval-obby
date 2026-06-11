@@ -1,12 +1,14 @@
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
-import { defaultRamps } from '../utils/rampData';
+import { gameStore } from '../store';
 
 export function RampsMesh() {
+  const ramps = useSyncExternalStore(gameStore.subscribe, gameStore.getRamps);
+
   const rampsGeo = useMemo(() => {
     // We can merge all ramp geometries into one for performance, or just render them as separate meshes.
-    // Let's render them as an array of meshes to allow frustum culling.
-    return defaultRamps.map((ramp, index) => {
+    // Here we'll just create a single merged array of React elements for simplicity,
+    return ramps.map((ramp, index) => {
       // Create a wedge shape on XY plane:
       // X = length, Y = height
       const shape = new THREE.Shape();

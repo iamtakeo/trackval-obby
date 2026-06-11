@@ -66,6 +66,13 @@ export class FitnessFunction {
                 repetitionPenalty += 1000 * sequenceVariety;
             }
 
+            // Loop track width penalty: if the track is wider than the loop radius, the loop hole collapses!
+            if (curr.type === 'loop') {
+                if (curr.width / 2 > curr.radius - 2) { // 2 meters safety margin
+                    fitness -= 5000; // instant death for visually broken loops
+                }
+            }
+
             // Accumulate sweep to prevent spirals of death
             if (curr.type !== 'loop') {
                 if (Math.sign(curr.sweepAngle) === Math.sign(accumulatedSweep) || accumulatedSweep === 0) {

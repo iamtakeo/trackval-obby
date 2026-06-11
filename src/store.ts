@@ -1,5 +1,6 @@
 import type { TrackData } from './utils/trackGenerator';
 import type { CartesianCapabilities } from './engine/CartesianPhysics';
+import { defaultRamps, type RampData } from './utils/rampData';
 
 export interface CarAppearance {
   bodyStyle: 'speedster' | 'brute' | 'interceptor';
@@ -42,6 +43,7 @@ class GameStore {
     accessory: 'none'
   };
   private connectedPlayers: Record<string, any> = {};
+  private ramps: RampData[] = defaultRamps;
   private listeners = new Set<Listener>();
 
   constructor() {
@@ -87,6 +89,13 @@ class GameStore {
   }
 
   getTrackData = () => this.trackData;
+
+  setRamps(ramps: RampData[]) {
+    this.ramps = ramps;
+    this.emit();
+  }
+
+  getRamps = () => this.ramps;
 
   setMenuOpen(isOpen: boolean) {
     if (this.isMenuOpen !== isOpen) {

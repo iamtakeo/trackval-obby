@@ -14,6 +14,7 @@ export interface TrackData {
     tangents: THREE.Vector3[];
     normals: THREE.Vector3[];
     binormals: THREE.Vector3[];
+    widths: number[];
   };
   failureReason?: string;
   dna?: TrackDNA;
@@ -30,6 +31,7 @@ export interface GeneratorParams {
   turnChance?: number;
   elevationVolatility?: number;
   sequenceVariety?: number;
+  widthVolatility?: number;
 }
 
 const defaultCapabilities: CartesianCapabilities = {
@@ -91,7 +93,7 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
   // Fallback
   const path = new THREE.CurvePath<THREE.Vector3>();
   path.add(new THREE.LineCurve3(new THREE.Vector3(0, 10, 0), new THREE.Vector3(0, 10, -100)));
-  const frames = computeFixedUpFrames(path, 400);
+  const frames = computeFixedUpFrames(path, 400, []);
 
   return { curve: path, frames, failureReason: lastFailureReason };
 }
@@ -114,7 +116,7 @@ function buildTrackCurve(segments: MathematicalSegment[], dna?: TrackDNA): Track
         } else {
             const v = new THREE.Vector3(seg.startPoint.position[0], seg.startPoint.position[2], -seg.startPoint.position[1]);
             if (v.y < minY) minY = v.y; 
-            worldSegments.push({ type: 'loop', startVec: v, radius: seg.radius, drift: seg.drift, endBank: seg.endBank });
+            worldSegments.push({ type: 'loop', startVec: v, radius: seg.radius, drift: seg.drift, endBank: seg.endBank, width: seg.startPoint.width });
         }
     }
     
@@ -152,16 +154,17 @@ function buildTrackCurve(segments: MathematicalSegment[], dna?: TrackDNA): Track
         }
     }
 
-    const frames = computeFixedUpFrames(curvePath, 400);
+    const frames = computeFixedUpFrames(curvePath, 400, worldSegments);
     return { curve: curvePath, frames, dna }; 
 }
 
-export function computeFixedUpFrames(curvePath: THREE.CurvePath<THREE.Vector3>, steps: number) {
+export function computeFixedUpFrames(curvePath: THREE.CurvePath<THREE.Vector3>, steps: number, worldSegments: any[]) {
   const frames = curvePath.computeFrenetFrames(steps, false);
   
   const tangents = frames.tangents;
   const normals = frames.normals;
   const binormals = frames.binormals;
+  const widths: number[] = [];
 
   let loopBinormal = new THREE.Vector3(1, 0, 0);
   const curveLengths = curvePath.getCurveLengths();
@@ -179,6 +182,33 @@ export function computeFixedUpFrames(curvePath: THREE.CurvePath<THREE.Vector3>, 
     
     const activeCurve = curvePath.curves[curveIndex];
     const isLoop = activeCurve instanceof LoopCurve3;
+    const worldSeg = worldSegments[curveIndex];
+
+    let width = 12;
+    if (worldSeg) {
+        if (worldSeg.type === 'loop') {
+            width = worldSeg.width || 12;
+        } else if (worldSeg.type === 'catmull' && worldSeg.points) {
+            // Find local t within this curve
+            const curveStartLen = curveIndex > 0 ? curveLengths[curveIndex - 1] : 0;
+            const curveLen = curveLengths[curveIndex] - curveStartLen;
+            const localT = curveLen > 0 ? (targetDistance - curveStartLen) / curveLen : 0;
+            
+            const numPoints = worldSeg.points.length;
+            const floatIndex = localT * (numPoints - 1);
+            const pIdx = Math.min(Math.floor(floatIndex), numPoints - 2);
+            const frac = floatIndex - pIdx;
+            
+            if (pIdx >= 0 && pIdx < numPoints - 1) {
+                const w1 = worldSeg.points[pIdx].width;
+                const w2 = worldSeg.points[pIdx + 1].width;
+                width = w1 + (w2 - w1) * frac;
+            } else if (numPoints > 0) {
+                width = worldSeg.points[0].width;
+            }
+        }
+    }
+    widths.push(width);
 
     if (!isLoop) {
         const globalUp = new THREE.Vector3(0, 1, 0);
@@ -196,5 +226,5 @@ export function computeFixedUpFrames(curvePath: THREE.CurvePath<THREE.Vector3>, 
     // loops don't need banking, and curves can function on normal up vectors.
   }
 
-  return { tangents, normals, binormals };
+  return { tangents, normals, binormals, widths };
 }

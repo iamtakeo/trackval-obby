@@ -10,6 +10,7 @@ export interface GAConfig {
     turnChance: number;
     elevationVolatility: number;
     sequenceVariety: number;
+    widthVolatility: number;
 }
 
 export class GeneticAlgorithm {
@@ -25,7 +26,8 @@ export class GeneticAlgorithm {
             loopChance: config.loopChance ?? 0.05,
             turnChance: config.turnChance ?? 0.8,
             elevationVolatility: config.elevationVolatility ?? 10,
-            sequenceVariety: config.sequenceVariety ?? 0.5
+            sequenceVariety: config.sequenceVariety ?? 0.5,
+            widthVolatility: config.widthVolatility ?? 5
         };
     }
 
@@ -36,7 +38,7 @@ export class GeneticAlgorithm {
             radius: isStraight ? Math.random() * 50 + 20 : Math.random() * 150 + 10,
             sweepAngle: isStraight ? 0 : (Math.random() - 0.5) * Math.PI, // -90 to 90 degrees
             bankAngle: (Math.random() - 0.5) * (Math.PI / 4), // -22.5 to 22.5 degrees
-            width: Math.random() * 10 + 5, // 5 to 15m
+            width: Math.max(5, 12 + (Math.random() - 0.5) * this.config.widthVolatility), 
             elevation: (Math.random() - 0.5) * this.config.elevationVolatility // elevation delta based on volatility
         };
     }
@@ -114,13 +116,14 @@ export class GeneticAlgorithm {
                 
                 // 3. Normal Jitter Mutation
                 const newSweep = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, (seg.sweepAngle || 0) + (Math.random() - 0.5) * Math.PI / 4));
+                const newWidth = Math.max(5, (seg.width || 12) + (Math.random() - 0.5) * this.config.widthVolatility);
                 dna.segments[i] = {
                     ...seg,
                     type: 'normal',
                     radius: Math.max((seg.width || 10) / 2 + 5, Math.max(10, (seg.radius || 0) + (Math.random() - 0.5) * 50)),
                     sweepAngle: Math.abs(newSweep) < 0.0001 ? 0 : newSweep,
                     bankAngle: (seg.bankAngle || 0) + (Math.random() - 0.5) * 0.2,
-                    width: seg.width,
+                    width: newWidth,
                     elevation: (seg.elevation || 0) + (Math.random() - 0.5) * this.config.elevationVolatility
                 };
             }

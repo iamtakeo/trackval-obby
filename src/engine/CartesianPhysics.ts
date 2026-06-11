@@ -1,6 +1,6 @@
 
 
-import { defaultRamps } from '../utils/rampData';
+import { gameStore } from '../store';
 
 export type Vector3 = { x: number; y: number; z: number };
 
@@ -38,6 +38,7 @@ export interface TrackGeometry {
   getNormal(s: number): Vector3;
   getBinormal(s: number): Vector3;
   getTangent(s: number): Vector3;
+  getWidth(s: number): number;
 }
 
 export class CartesianPhysics {
@@ -46,7 +47,6 @@ export class CartesianPhysics {
   
   // Precomputed track samples for fast closest-point lookups
   private trackSamples: { s: number, pos: Vector3, normal: Vector3, binormal: Vector3 }[] = [];
-  private trackWidth = 12;
 
   constructor(capabilities: CartesianCapabilities, track: TrackGeometry) {
     this.capabilities = capabilities;
@@ -126,14 +126,14 @@ export class CartesianPhysics {
     const smoothBinormal = this.track.getBinormal(exactS);
     const smoothTangent = this.track.getTangent(exactS);
 
-    // Distance in the lateral plane (binormal)
     const dxPlane = x - smoothPos.x;
     const dyPlane = y - smoothPos.y;
     const dzPlane = z - smoothPos.z;
     
     const lateralDist = Math.abs(dxPlane * smoothBinormal.x + dyPlane * smoothBinormal.y + dzPlane * smoothBinormal.z);
+    const dynamicWidth = this.track.getWidth(exactS);
 
-    if (lateralDist <= this.trackWidth / 2 + 1.0) {
+    if (lateralDist <= dynamicWidth / 2 + 1.0) {
       return {
         onTrack: true,
         exactPos: smoothPos,
@@ -244,7 +244,7 @@ export class CartesianPhysics {
     }
 
     // Check ramps
-    for (const ramp of defaultRamps) {
+    for (const ramp of gameStore.getRamps()) {
       const dxRamp = newState.position.x - ramp.position[0];
       const dzRamp = newState.position.z - ramp.position[2];
       

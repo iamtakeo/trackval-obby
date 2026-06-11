@@ -6,19 +6,21 @@ export interface RampData {
   height: number; // peak height
 }
 
-export const defaultRamps: RampData[] = [
-  // Small jumps
-  { position: [-20, 0, 20], rotation: Math.PI / 4, width: 8, length: 15, height: 3 },
-  { position: [-30, 0, 30], rotation: Math.PI / 4, width: 8, length: 15, height: 3 },
-  
-  // Medium kicker
-  { position: [0, 0, 40], rotation: 0, width: 12, length: 20, height: 6 },
-  
-  // Big air ramps
-  { position: [40, 0, 40], rotation: -Math.PI / 4, width: 20, length: 40, height: 15 },
-  { position: [60, 0, 20], rotation: -Math.PI / 2, width: 20, length: 40, height: 15 },
+export function generateRamps(frequency: number): RampData[] {
+  const ramps: RampData[] = [];
+  const areaSize = 150; // scatter around origin +/- 150m
 
-  // Halfpipe-style opposed ramps
-  { position: [-50, 0, -20], rotation: Math.PI / 2, width: 20, length: 30, height: 10 },
-  { position: [-20, 0, -20], rotation: -Math.PI / 2, width: 20, length: 30, height: 10 },
-];
+  for (let i = 0; i < frequency; i++) {
+    ramps.push({
+      position: [(Math.random() - 0.5) * areaSize * 2, 0, (Math.random() - 0.5) * areaSize * 2],
+      rotation: Math.random() * Math.PI * 2,
+      width: 8 + Math.random() * 12, // 8 to 20m
+      length: 15 + Math.random() * 25, // 15 to 40m
+      height: 3 + Math.random() * 12, // 3 to 15m
+    });
+  }
+
+  return ramps;
+}
+
+export const defaultRamps: RampData[] = generateRamps(8);

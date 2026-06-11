@@ -12,9 +12,9 @@ import { CarModel } from './CarModel';
 // A simple adapter to allow CartesianPhysics to query the mathematical track spline
 class CartesianTrackAdapter implements TrackGeometry {
   curve: THREE.Curve<THREE.Vector3>;
-  frames: { tangents: THREE.Vector3[], normals: THREE.Vector3[], binormals: THREE.Vector3[] };
+  frames: { tangents: THREE.Vector3[], normals: THREE.Vector3[], binormals: THREE.Vector3[], widths: number[] };
 
-  constructor(curve: THREE.Curve<THREE.Vector3>, frames: { tangents: THREE.Vector3[], normals: THREE.Vector3[], binormals: THREE.Vector3[] }) {
+  constructor(curve: THREE.Curve<THREE.Vector3>, frames: { tangents: THREE.Vector3[], normals: THREE.Vector3[], binormals: THREE.Vector3[], widths: number[] }) {
     this.curve = curve;
     this.frames = frames;
   }
@@ -63,6 +63,19 @@ class CartesianTrackAdapter implements TrackGeometry {
   getTangent(s: number): { x: number; y: number; z: number } {
     const t = this.getT(s);
     return this.getInterpolatedVector(this.frames.tangents, t);
+  }
+
+  getWidth(s: number): number {
+    const t = this.getT(s);
+    const floatIndex = t * (this.frames.widths.length - 1);
+    const index = Math.floor(floatIndex);
+    const fraction = floatIndex - index;
+
+    if (index >= this.frames.widths.length - 1) return this.frames.widths[this.frames.widths.length - 1];
+
+    const w1 = this.frames.widths[index];
+    const w2 = this.frames.widths[index + 1];
+    return w1 + (w2 - w1) * fraction;
   }
 }
 

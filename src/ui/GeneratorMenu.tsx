@@ -4,6 +4,8 @@ import { generateTrackCurve } from '../utils/trackGenerator';
 import { useMultiplayer } from '../hooks/useMultiplayer';
 import type { CartesianCapabilities } from '../engine/CartesianPhysics';
 
+import { generateRamps } from '../utils/rampData';
+
 export function GeneratorMenu() {
   const { broadcastTrack, broadcastParams, isConnected, socketId } = useMultiplayer();
   const [isOpen, setIsOpen] = useState(gameStore.getMenuOpen());
@@ -16,6 +18,8 @@ export function GeneratorMenu() {
   const [turnChance, setTurnChance] = useState(0.8);
   const [elevationVolatility, setElevationVolatility] = useState(10);
   const [sequenceVariety, setSequenceVariety] = useState(0.5);
+  const [widthVolatility, setWidthVolatility] = useState(5);
+  const [rampFrequency, setRampFrequency] = useState(8);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
@@ -48,13 +52,15 @@ export function GeneratorMenu() {
           loopChance: loopChance,
           turnChance: turnChance,
           elevationVolatility: elevationVolatility,
-          sequenceVariety: sequenceVariety
+          sequenceVariety: sequenceVariety,
+          widthVolatility: widthVolatility
         });
 
         if (result.failureReason) {
           setErrorMsg(result.failureReason);
         } else {
           gameStore.setTrackData(result);
+          gameStore.setRamps(generateRamps(rampFrequency));
           if (result.dna) {
             broadcastTrack(result.dna);
           }
@@ -209,6 +215,30 @@ export function GeneratorMenu() {
               <input 
                 type="range" min="0" max="50" step="1" value={elevationVolatility} 
                 onChange={e => setElevationVolatility(parseInt(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label style={labelStyle}>
+                <span>Width Volatility</span>
+                <span style={{ color: '#00e5ff' }}>{widthVolatility}m</span>
+              </label>
+              <input 
+                type="range" min="0" max="25" step="1" value={widthVolatility} 
+                onChange={e => setWidthVolatility(parseInt(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label style={labelStyle}>
+                <span>Ramp Frequency</span>
+                <span style={{ color: '#00e5ff' }}>{rampFrequency}</span>
+              </label>
+              <input 
+                type="range" min="0" max="30" step="1" value={rampFrequency} 
+                onChange={e => setRampFrequency(parseInt(e.target.value))}
                 style={{ width: '100%' }}
               />
             </div>
