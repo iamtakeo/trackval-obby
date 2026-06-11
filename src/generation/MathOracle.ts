@@ -84,8 +84,9 @@ export class MathOracle {
                     endBank: seg.bankAngle
                 });
                 
-                px = px - drift * Math.sin(yaw);
-                py = py + drift * Math.cos(yaw);
+                px = px + drift * Math.sin(yaw);
+                py = py - drift * Math.cos(yaw);
+                yaw = yaw + Math.atan2(drift, 2 * Math.PI * R);
                 pz = startZ;
                 
                 pushCatmullPoint({

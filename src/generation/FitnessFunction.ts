@@ -37,12 +37,27 @@ export class FitnessFunction {
         const varianceScore = (varRadius * 0.1) + (varSweep * 10) + (varElev * 2) + (varBank * 10);
         fitness += varianceScore;
         
-        // --- 2. Smoothness (Penalize jerk) ---
+        // --- 2. Smoothness (Penalize jerk) & Spirals ---
         let jerkPenalty = 0;
+        let accumulatedSweep = 0;
+        
         for (let i = 1; i < n; i++) {
             const prev = segments[i - 1];
             const curr = segments[i];
             
+            // Accumulate sweep to prevent spirals of death
+            if (curr.type !== 'loop') {
+                if (Math.sign(curr.sweepAngle) === Math.sign(accumulatedSweep) || accumulatedSweep === 0) {
+                    accumulatedSweep += curr.sweepAngle;
+                } else {
+                    accumulatedSweep = curr.sweepAngle; // Reset if direction changes
+                }
+                
+                if (Math.abs(accumulatedSweep) > 2 * Math.PI) {
+                    jerkPenalty += Math.abs(accumulatedSweep) * 1000; // Massive penalty for infinite spirals
+                }
+            }
+
             const getCurvature = (r: number, sweep: number) => 
                 Math.abs(sweep) < 0.0001 ? 0 : 1 / Math.max(r, 1);
             

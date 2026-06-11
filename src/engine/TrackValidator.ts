@@ -89,7 +89,19 @@ export class TrackValidator {
         
         // Curves have an absolute speed limit to avoid sliding out
         if (seg.type === 'curve') {
-          const maxCornerSpeed = Math.sqrt(this.capabilities.maxLateralG * seg.radius);
+          if (seg.radius < 15) {
+            return {
+              isPossible: false,
+              failureReason: `Curve radius ${seg.radius.toFixed(1)}m is physically too tight for the steering lock. Minimum is 15m.`,
+              failureSegmentIndex: i,
+              maxSpeedProfile: maxSpeedsForward.slice(0, i + 1)
+            };
+          }
+          const maxSteerSpeed = seg.radius * (60 * this.capabilities.steeringSensitivity);
+          const maxCornerSpeed = Math.min(
+            Math.sqrt(this.capabilities.maxLateralG * seg.radius),
+            maxSteerSpeed
+          );
           exitSpeed = Math.min(exitSpeed, maxCornerSpeed);
         }
 
@@ -157,7 +169,11 @@ export class TrackValidator {
       // Next segment restrictions
       if (i < numSegments - 1 && segments[i + 1].type === 'curve') {
         const nextSeg = segments[i + 1] as CurveSegment;
-        const maxCornerSpeed = Math.sqrt(this.capabilities.maxLateralG * nextSeg.radius);
+        const maxSteerSpeed = nextSeg.radius * (60 * this.capabilities.steeringSensitivity);
+        const maxCornerSpeed = Math.min(
+          Math.sqrt(this.capabilities.maxLateralG * nextSeg.radius),
+          maxSteerSpeed
+        );
         limitAtExit = Math.min(limitAtExit, maxCornerSpeed);
       }
 

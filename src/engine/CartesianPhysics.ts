@@ -196,6 +196,8 @@ export class CartesianPhysics {
     if (effectiveSpeedForSteering > 0.1) {
       effectiveSpeedForSteering = Math.max(effectiveSpeedForSteering, 60);
     }
+    // Floor limit for low-speed maneuvering
+    effectiveSpeedForSteering = Math.max(5, effectiveSpeedForSteering);
     const direction = Math.sign(newState.forwardSpeed) >= 0 ? 1 : -1;
     let currentSensitivity = this.capabilities.steeringSensitivity;
     if (inputs.handbrake && Math.abs(newState.forwardSpeed) > 10) {
