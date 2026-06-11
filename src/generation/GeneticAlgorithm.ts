@@ -11,6 +11,7 @@ export interface GAConfig {
     elevationVolatility: number;
     sequenceVariety: number;
     widthVolatility: number;
+    isClosed: boolean;
 }
 
 export class GeneticAlgorithm {
@@ -27,7 +28,8 @@ export class GeneticAlgorithm {
             turnChance: config.turnChance ?? 0.8,
             elevationVolatility: config.elevationVolatility ?? 10,
             sequenceVariety: config.sequenceVariety ?? 0.5,
-            widthVolatility: config.widthVolatility ?? 5
+            widthVolatility: config.widthVolatility ?? 5,
+            isClosed: config.isClosed ?? false
         };
     }
 
@@ -46,11 +48,10 @@ export class GeneticAlgorithm {
     private createInitialPopulation() {
         this.population = [];
         for (let i = 0; i < this.config.populationSize; i++) {
-            const segments: TrackSegmentDNA[] = [];
-            for (let j = 0; j < this.config.segmentsPerTrack; j++) {
-                segments.push(this.randomSegment());
-            }
-            this.population.push({ segments });
+            this.population.push({
+                segments: Array.from({ length: this.config.segmentsPerTrack }, () => this.randomSegment()),
+                isClosed: this.config.isClosed
+            });
         }
     }
 
@@ -62,7 +63,7 @@ export class GeneticAlgorithm {
                 ? { ...parentA.segments[i] } 
                 : { ...parentB.segments[i] });
         }
-        return { segments: childSegments };
+        return { segments: childSegments, isClosed: this.config.isClosed };
     }
 
     private mutate(dna: TrackDNA) {
@@ -151,58 +152,39 @@ export class GeneticAlgorithm {
     public run(): TrackDNA {
         this.createInitialPopulation();
 
-        let bestTrack: TrackDNA = this.population[0];
-        let bestFitness = -Infinity;
-
         for (let gen = 0; gen < this.config.generations; gen++) {
             const scoredPopulation = this.population.map(dna => ({
                 dna,
-                fitness: FitnessFunction.evaluate(dna, this.config.sequenceVariety)
+                fitness: FitnessFunction.evaluate(dna, this.config.sequenceVariety, this.config.isClosed)
             }));
 
             // Sort descending by fitness
             scoredPopulation.sort((a, b) => b.fitness - a.fitness);
 
-            if (scoredPopulation[0].fitness > bestFitness) {
-                bestFitness = scoredPopulation[0].fitness;
-                bestTrack = JSON.parse(JSON.stringify(scoredPopulation[0].dna));
-            }
-
-            const newPopulation: TrackDNA[] = [];
-            
-            // Elitism: keep top 10%
             const eliteCount = Math.floor(this.config.populationSize * 0.1);
-            for (let i = 0; i < eliteCount; i++) {
-                newPopulation.push(JSON.parse(JSON.stringify(scoredPopulation[i].dna)));
-            }
+            const elite = scoredPopulation.slice(0, eliteCount).map(s => s.dna);
+            const offspring: TrackDNA[] = [];
 
-            // Fill remainder
-            while (newPopulation.length < this.config.populationSize) {
+            while (offspring.length + elite.length < this.config.populationSize) {
                 const parentA = this.tournamentSelection(scoredPopulation);
                 const parentB = this.tournamentSelection(scoredPopulation);
                 
                 const child = this.crossover(parentA, parentB);
                 this.mutate(child);
-                newPopulation.push(child);
+                offspring.push(child);
             }
 
-            this.population = newPopulation;
+            this.population = [...elite, ...offspring];
         }
 
-        // Final eval
         const finalScored = this.population.map(dna => ({
             dna,
-            fitness: FitnessFunction.evaluate(dna)
+            fitness: FitnessFunction.evaluate(dna, this.config.sequenceVariety, this.config.isClosed)
         }));
         finalScored.sort((a, b) => b.fitness - a.fitness);
-        
-        if (finalScored[0].fitness > bestFitness) {
-            bestTrack = finalScored[0].dna;
-        }
 
-        return bestTrack;
+        return finalScored[0].dna;
     }
-
     private tournamentSelection(scoredPop: {dna: TrackDNA, fitness: number}[]): TrackDNA {
         const tournamentSize = 3;
         let best = scoredPop[Math.floor(Math.random() * scoredPop.length)];

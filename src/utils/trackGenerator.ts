@@ -61,7 +61,8 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
     loopChance: params.loopChance,
     turnChance: params.turnChance,
     elevationVolatility: params.elevationVolatility,
-    sequenceVariety: params.sequenceVariety
+    sequenceVariety: params.sequenceVariety,
+    isClosed: params.isClosed
   });
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -152,6 +153,37 @@ function buildTrackCurve(segments: MathematicalSegment[], dna?: TrackDNA): Track
             const loopCurve = new LoopCurve3(startVec, tangent, seg.radius, seg.drift);
             curvePath.add(loopCurve);
         }
+    }
+
+    if (dna && dna.isClosed && curvePath.curves.length > 0) {
+        const firstCurve = curvePath.curves[0];
+        const lastCurve = curvePath.curves[curvePath.curves.length - 1];
+        
+        const startPt = lastCurve.getPoint(1);
+        const endPt = firstCurve.getPoint(0);
+        
+        const startTangent = lastCurve.getTangent(1).normalize();
+        const endTangent = firstCurve.getTangent(0).normalize();
+        
+        const distance = startPt.distanceTo(endPt);
+        const cp1 = startPt.clone().add(startTangent.clone().multiplyScalar(distance * 0.33));
+        const cp2 = endPt.clone().sub(endTangent.clone().multiplyScalar(distance * 0.33));
+        
+        const closingCurve = new THREE.CubicBezierCurve3(startPt, cp1, cp2, endPt);
+        curvePath.add(closingCurve);
+        
+        const lastSeg = worldSegments[worldSegments.length - 1];
+        const firstSeg = worldSegments[0];
+        const startWidth = lastSeg.type === 'catmull' ? lastSeg.points[lastSeg.points.length - 1].width : (lastSeg.width || 12);
+        const endWidth = firstSeg.type === 'catmull' ? firstSeg.points[0].width : (firstSeg.width || 12);
+        
+        worldSegments.push({
+            type: 'catmull',
+            points: [
+                { width: startWidth },
+                { width: endWidth }
+            ]
+        });
     }
 
     const frames = computeFixedUpFrames(curvePath, 400, worldSegments);

@@ -5,7 +5,7 @@ export class FitnessFunction {
     /**
      * Evaluates a track DNA on variance, smoothness, and thrill.
      */
-    static evaluate(dna: TrackDNA, sequenceVariety: number = 0.5): number {
+    static evaluate(dna: TrackDNA, sequenceVariety: number = 0.5, isClosed: boolean = false): number {
         if (dna.segments.length === 0) return 0;
 
         let fitness = 0;
@@ -154,6 +154,37 @@ export class FitnessFunction {
             }
         }
         fitness -= collisionPenalty;
+
+        // --- 5. Closed Loop Evaluation ---
+        if (isClosed && numPoints > 0) {
+            const startPt = points[0];
+            const endPt = points[numPoints - 1];
+            
+            const dx = endPt.x - startPt.x;
+            const dy = endPt.y - startPt.y;
+            const dz = endPt.z - startPt.z;
+            const distSq = dx*dx + dy*dy;
+            
+            // Severe penalty for ending far from the start
+            fitness -= distSq * 20;
+            // Severe penalty for vertical misalignment
+            fitness -= Math.pow(dz, 2) * 50;
+            
+            // To ensure smooth tangential connection, the overall sweep angle sum should be roughly a multiple of 2PI
+            let totalSweep = 0;
+            for (const s of segments) {
+                totalSweep += s.sweepAngle;
+            }
+            const twoPi = 2 * Math.PI;
+            const remainder = Math.abs(totalSweep) % twoPi;
+            const angularDiff = Math.min(remainder, twoPi - remainder);
+            fitness -= angularDiff * 5000; // Force total sweep to be multiple of 360 degrees
+            
+            // Force the same start and end bank angles
+            const endBank = segments[segments.length - 1].bankAngle;
+            const startBank = segments[0].bankAngle;
+            fitness -= Math.pow(endBank - startBank, 2) * 2000;
+        }
 
         return Math.max(0, fitness + 1000); // Shift to keep positive
     }

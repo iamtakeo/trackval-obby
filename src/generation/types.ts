@@ -9,6 +9,7 @@ export interface TrackSegmentDNA {
 
 export interface TrackDNA {
     segments: TrackSegmentDNA[];
+    isClosed?: boolean;
 }
 
 export interface SplinePoint {
