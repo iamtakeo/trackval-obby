@@ -97,11 +97,13 @@ export class GeneticAlgorithm {
                     dna.segments[i - 1].bankAngle = 0;
                     dna.segments[i - 1].sweepAngle = 0;
                     dna.segments[i - 1].elevation = 0; // ensure flat entry
+                    dna.segments[i - 1].radius = Math.min(dna.segments[i - 1].radius, 30); // limit padding length
                 }
                 if (i < dna.segments.length - 1 && dna.segments[i + 1].type !== 'loop') {
                     dna.segments[i + 1].bankAngle = 0;
                     dna.segments[i + 1].sweepAngle = 0;
                     dna.segments[i + 1].elevation = 0; // ensure flat exit
+                    dna.segments[i + 1].radius = Math.min(dna.segments[i + 1].radius, 30); // limit padding length
                 }
             }
         }
