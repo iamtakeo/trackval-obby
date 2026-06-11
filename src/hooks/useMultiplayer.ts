@@ -37,6 +37,9 @@ export function useMultiplayer() {
             if (data.globalTrackDNA) {
               gameStore.setTrackData(generateTrackCurve({ dna: data.globalTrackDNA }));
             }
+            if (data.globalRamps) {
+              gameStore.setRamps(data.globalRamps);
+            }
             if (data.globalCarParams) {
               gameStore.setCarParameters(data.globalCarParams);
             }
@@ -44,6 +47,9 @@ export function useMultiplayer() {
           case 'setTrack':
             if (data.dna) {
                gameStore.setTrackData(generateTrackCurve({ dna: data.dna }));
+            }
+            if (data.ramps) {
+               gameStore.setRamps(data.ramps);
             }
             break;
           case 'setParams':
@@ -98,11 +104,12 @@ export function useMultiplayer() {
     }
   }, [socket]);
 
-  const broadcastTrack = useCallback((dna: any) => {
+  const broadcastTrack = useCallback((dna: any, ramps: any) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({
         type: 'setTrack',
-        dna
+        dna,
+        ramps
       }));
     }
   }, [socket]);

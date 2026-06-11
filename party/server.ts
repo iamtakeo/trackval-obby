@@ -12,6 +12,7 @@ export interface Player {
 export default class TrackvalServer implements Party.Server {
   players: Map<string, Player>;
   globalTrackDNA: any | null = null;
+  globalRamps: any | null = null;
   globalCarParams: any | null = null;
 
   constructor(readonly room: Party.Room) {
@@ -40,6 +41,7 @@ export default class TrackvalServer implements Party.Server {
       type: "sync",
       players: playersObj,
       globalTrackDNA: this.globalTrackDNA,
+      globalRamps: this.globalRamps,
       globalCarParams: this.globalCarParams
     }));
     
@@ -56,9 +58,11 @@ export default class TrackvalServer implements Party.Server {
       
       if (data.type === "setTrack") {
         this.globalTrackDNA = data.dna;
+        this.globalRamps = data.ramps;
         this.room.broadcast(JSON.stringify({
           type: "setTrack",
-          dna: data.dna
+          dna: data.dna,
+          ramps: data.ramps
         }), [sender.id]); // broadcast to everyone else
       }
       else if (data.type === "setParams") {

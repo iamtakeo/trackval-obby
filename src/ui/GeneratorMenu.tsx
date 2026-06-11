@@ -60,9 +60,10 @@ export function GeneratorMenu() {
           setErrorMsg(result.failureReason);
         } else {
           gameStore.setTrackData(result);
-          gameStore.setRamps(generateRamps(rampFrequency));
+          const newRamps = generateRamps(rampFrequency);
+          gameStore.setRamps(newRamps);
           if (result.dna) {
-            broadcastTrack(result.dna);
+            broadcastTrack(result.dna, newRamps);
           }
           gameStore.setMenuOpen(false);
         }
