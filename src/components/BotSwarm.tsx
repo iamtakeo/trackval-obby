@@ -150,29 +150,43 @@ export function BotSwarm({ trackData }: BotSwarmProps) {
         bot.lastS = s;
       }
 
-      // Lookahead curvature analysis
-      const lookaheadDist = Math.max(20, bot.state.forwardSpeed * 1.5);
-      const targetS = Math.min(s + lookaheadDist, adapter.getTotalLength());
+      // Lookahead curvature analysis - Multi-sample for sharper corners
+      const lookaheadDist = Math.max(30, bot.state.forwardSpeed * 1.5);
+      const samples = 5;
+      let maxCurveSharpness = 0;
       
-      const currentTangent = adapter.getTangent(s);
-      const targetTangent = adapter.getTangent(targetS);
-      const currentTangentVec = new THREE.Vector3(currentTangent.x, currentTangent.y, currentTangent.z);
-      const targetTangentVec = new THREE.Vector3(targetTangent.x, targetTangent.y, targetTangent.z);
-      const angleDiff = currentTangentVec.angleTo(targetTangentVec);
+      for (let i = 1; i <= samples; i++) {
+        const sampleS1 = Math.min(s + (i - 1) * (lookaheadDist / samples), adapter.getTotalLength());
+        const sampleS2 = Math.min(s + i * (lookaheadDist / samples), adapter.getTotalLength());
+        
+        const t1 = adapter.getTangent(sampleS1);
+        const t2 = adapter.getTangent(sampleS2);
+        const v1 = new THREE.Vector3(t1.x, t1.y, t1.z);
+        const v2 = new THREE.Vector3(t2.x, t2.y, t2.z);
+        
+        const angleDiff = v1.angleTo(v2);
+        const sharpness = angleDiff / (lookaheadDist / samples);
+        if (sharpness > maxCurveSharpness) {
+          maxCurveSharpness = sharpness;
+        }
+      }
       
-      // Calculate max safe speed roughly
-      const curveSharpness = angleDiff / lookaheadDist; // radians per meter
       const maxLatG = gameStore.getCarParameters().maxLateralG;
-      // a = v^2 * curveSharpness -> v = sqrt(a / curveSharpness)
-      const maxSafeSpeed = curveSharpness > 0.001 ? Math.sqrt(maxLatG / curveSharpness) : 1000;
+      // Safety factor of 0.6 for the bot to be conservative on corners
+      const maxSafeSpeed = maxCurveSharpness > 0.001 ? Math.sqrt(maxLatG / maxCurveSharpness) * 0.6 : 1000;
       
       let throttle = 0;
       let brake = 0;
-      if (bot.state.forwardSpeed > maxSafeSpeed * 0.9) {
+      if (bot.state.forwardSpeed > maxSafeSpeed) {
         brake = 1;
-      } else {
+      } else if (bot.state.forwardSpeed < maxSafeSpeed * 0.9) {
         throttle = 1;
+      } else {
+        // Coasting to maintain speed
+        throttle = 0.1;
       }
+      
+      const targetS = Math.min(s + lookaheadDist * 0.5, adapter.getTotalLength());
 
       // Steering (Stanley Controller approximation)
       const targetPoint = adapter.getCartesian(targetS, 0); // Aim for center
