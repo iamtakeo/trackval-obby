@@ -6,6 +6,9 @@ export interface GAConfig {
     mutationRate: number;
     generations: number;
     segmentsPerTrack: number;
+    loopChance: number;
+    turnChance: number;
+    elevationVolatility: number;
 }
 
 export class GeneticAlgorithm {
@@ -17,19 +20,22 @@ export class GeneticAlgorithm {
             populationSize: config.populationSize || 50,
             mutationRate: config.mutationRate || 0.1,
             generations: config.generations || 100,
-            segmentsPerTrack: config.segmentsPerTrack || 20
+            segmentsPerTrack: config.segmentsPerTrack || 20,
+            loopChance: config.loopChance ?? 0.05,
+            turnChance: config.turnChance ?? 0.8,
+            elevationVolatility: config.elevationVolatility ?? 10
         };
     }
 
     private randomSegment(): TrackSegmentDNA {
-        const isStraight = Math.random() < 0.2;
+        const isStraight = Math.random() > this.config.turnChance;
         return {
             // straight lines have sweep 0 and radius acts as length
             radius: isStraight ? Math.random() * 50 + 20 : Math.random() * 150 + 10,
             sweepAngle: isStraight ? 0 : (Math.random() - 0.5) * Math.PI, // -90 to 90 degrees
             bankAngle: (Math.random() - 0.5) * (Math.PI / 4), // -22.5 to 22.5 degrees
             width: Math.random() * 10 + 5, // 5 to 15m
-            elevation: (Math.random() - 0.5) * 4 // -2 to 2m delta (mostly flat)
+            elevation: (Math.random() - 0.5) * this.config.elevationVolatility // elevation delta based on volatility
         };
     }
 
@@ -58,7 +64,7 @@ export class GeneticAlgorithm {
     private mutate(dna: TrackDNA) {
         dna.segments = dna.segments.map(seg => {
             if (Math.random() < this.config.mutationRate) {
-                const isLoop = Math.random() < 0.05; // 5% chance to become a loop
+                const isLoop = Math.random() < this.config.loopChance; // chance to become a loop
                 if (isLoop) {
                     return {
                         type: 'loop',
@@ -78,7 +84,7 @@ export class GeneticAlgorithm {
                     sweepAngle: Math.abs(newSweep) < 0.0001 ? 0 : newSweep,
                     bankAngle: (seg.bankAngle || 0) + (Math.random() - 0.5) * 0.2,
                     width: seg.width,
-                    elevation: (seg.elevation || 0) + (Math.random() - 0.5) * 10
+                    elevation: (seg.elevation || 0) + (Math.random() - 0.5) * this.config.elevationVolatility
                 };
             }
             return seg;

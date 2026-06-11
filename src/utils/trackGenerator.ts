@@ -26,6 +26,9 @@ export interface GeneratorParams {
   curvatureVariance?: number;
   isClosed?: boolean;
   dna?: TrackDNA;
+  loopChance?: number;
+  turnChance?: number;
+  elevationVolatility?: number;
 }
 
 const defaultCapabilities: CartesianCapabilities = {
@@ -51,7 +54,10 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
   const ga = new GeneticAlgorithm({
     populationSize: 50,
     generations: params.generations || 20,
-    segmentsPerTrack: params.segmentsPerTrack || 15
+    segmentsPerTrack: params.segmentsPerTrack || 15,
+    loopChance: params.loopChance,
+    turnChance: params.turnChance,
+    elevationVolatility: params.elevationVolatility
   });
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {

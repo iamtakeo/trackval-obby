@@ -12,6 +12,9 @@ export function GeneratorMenu() {
   const [segments, setSegments] = useState(15);
   const [generations, setGenerations] = useState(20);
   const [isClosed, setIsClosed] = useState(false);
+  const [loopChance, setLoopChance] = useState(0.05);
+  const [turnChance, setTurnChance] = useState(0.8);
+  const [elevationVolatility, setElevationVolatility] = useState(10);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
@@ -40,7 +43,10 @@ export function GeneratorMenu() {
         const result = generateTrackCurve({
           segmentsPerTrack: segments,
           generations: generations,
-          isClosed: isClosed
+          isClosed: isClosed,
+          loopChance: loopChance,
+          turnChance: turnChance,
+          elevationVolatility: elevationVolatility
         });
 
         if (result.failureReason) {
@@ -153,6 +159,42 @@ export function GeneratorMenu() {
               <input 
                 type="range" min="5" max="100" value={generations} 
                 onChange={e => setGenerations(parseInt(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label style={labelStyle}>
+                <span>Loop Chance</span>
+                <span style={{ color: '#00e5ff' }}>{(loopChance * 100).toFixed(0)}%</span>
+              </label>
+              <input 
+                type="range" min="0" max="0.5" step="0.01" value={loopChance} 
+                onChange={e => setLoopChance(parseFloat(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label style={labelStyle}>
+                <span>Turn Frequency</span>
+                <span style={{ color: '#00e5ff' }}>{(turnChance * 100).toFixed(0)}%</span>
+              </label>
+              <input 
+                type="range" min="0" max="1" step="0.05" value={turnChance} 
+                onChange={e => setTurnChance(parseFloat(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label style={labelStyle}>
+                <span>Elevation Volatility</span>
+                <span style={{ color: '#00e5ff' }}>{elevationVolatility}m</span>
+              </label>
+              <input 
+                type="range" min="0" max="50" step="1" value={elevationVolatility} 
+                onChange={e => setElevationVolatility(parseInt(e.target.value))}
                 style={{ width: '100%' }}
               />
             </div>
