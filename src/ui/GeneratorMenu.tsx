@@ -9,7 +9,7 @@ import { generateRamps } from '../utils/rampData';
 export function GeneratorMenu() {
   const { broadcastTrack, broadcastParams, isConnected, socketId } = useMultiplayer();
   const [isOpen, setIsOpen] = useState(gameStore.getMenuOpen());
-  const [currentMenu, setCurrentMenu] = useState<'main' | 'generator' | 'parameters' | 'players' | 'garage'>('main');
+  const [currentMenu, setCurrentMenu] = useState<'main' | 'generator' | 'parameters' | 'players' | 'garage' | 'bot-validation'>('main');
   
   const [segments, setSegments] = useState(15);
   const [generations, setGenerations] = useState(20);
@@ -31,6 +31,10 @@ export function GeneratorMenu() {
   const connectedPlayers = useSyncExternalStore(gameStore.subscribe, gameStore.getConnectedPlayers);
   const myName = useSyncExternalStore(gameStore.subscribe, gameStore.getPlayerName);
   const carAppearance = useSyncExternalStore(gameStore.subscribe, gameStore.getCarAppearance);
+  const botSimulationActive = useSyncExternalStore(gameStore.subscribe, gameStore.getBotSimulationActive);
+  const botCount = useSyncExternalStore(gameStore.subscribe, gameStore.getBotCount);
+  const showHeatmap = useSyncExternalStore(gameStore.subscribe, gameStore.getShowHeatmap);
+  const botStats = useSyncExternalStore(gameStore.subscribe, gameStore.getBotStats);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -146,6 +150,7 @@ export function GeneratorMenu() {
           <button style={buttonStyle} onClick={() => setCurrentMenu('players')} onMouseOver={e => e.currentTarget.style.borderColor = '#00ffaa'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Players ({Object.keys(connectedPlayers).length + 1})</button>
           <button style={buttonStyle} onClick={() => setCurrentMenu('garage')} onMouseOver={e => e.currentTarget.style.borderColor = '#ffaa00'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Garage (Customize Car)</button>
           <button style={buttonStyle} onClick={() => setCurrentMenu('generator')} onMouseOver={e => e.currentTarget.style.borderColor = '#00e5ff'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Track Generator</button>
+          <button style={buttonStyle} onClick={() => setCurrentMenu('bot-validation')} onMouseOver={e => e.currentTarget.style.borderColor = '#00ff00'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Bot Validation</button>
           <button style={buttonStyle} onClick={() => setCurrentMenu('parameters')} onMouseOver={e => e.currentTarget.style.borderColor = '#ff0055'} onMouseOut={e => e.currentTarget.style.borderColor = '#555'}>Car Parameters</button>
           <button 
             style={{ ...buttonStyle, borderColor: gameStore.getIsSpectating() ? '#ff00ff' : '#555' }} 
@@ -597,6 +602,77 @@ export function GeneratorMenu() {
         </>
       )}
 
+      {currentMenu === 'bot-validation' && (
+        <>
+          <div style={{...cardStyle, boxShadow: '0 0 40px rgba(0, 255, 0, 0.1)'}}>
+            <h2 style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#00ff00' }}>Bot Validation</h2>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={labelStyle}>
+                <span>Number of Bots (Full Physics)</span>
+                <span style={{ color: '#00ff00' }}>{botCount}</span>
+              </label>
+              <input 
+                type="range" min="1" max="10" value={botCount} 
+                onChange={e => gameStore.setBotCount(parseInt(e.target.value))}
+                style={{ width: '100%' }}
+                disabled={botSimulationActive}
+              />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ ...labelStyle, alignItems: 'center', cursor: 'pointer' }}>
+                <span>Show Failure Heatmap</span>
+                <input 
+                  type="checkbox" 
+                  checked={showHeatmap}
+                  onChange={e => gameStore.setShowHeatmap(e.target.checked)}
+                  style={{ width: '20px', height: '20px', accentColor: '#00ff00' }}
+                />
+              </label>
+            </div>
+
+            <div style={{ 
+              display: 'flex', justifyContent: 'space-between', 
+              background: '#222', padding: '15px', borderRadius: '8px', 
+              marginBottom: '20px', border: '1px solid #444' 
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '12px', color: '#888' }}>Active</div>
+                <div style={{ fontSize: '20px', color: '#00e5ff', fontWeight: 'bold' }}>{botStats.active}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '12px', color: '#888' }}>Success</div>
+                <div style={{ fontSize: '20px', color: '#00ffaa', fontWeight: 'bold' }}>{botStats.success}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '12px', color: '#888' }}>Failed</div>
+                <div style={{ fontSize: '20px', color: '#ff3232', fontWeight: 'bold' }}>{botStats.fail}</div>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => {
+                if (!botSimulationActive) {
+                  gameStore.clearTelemetry();
+                }
+                gameStore.setBotSimulationActive(!botSimulationActive);
+              }}
+              style={{
+                width: '100%', padding: '12px', 
+                background: botSimulationActive ? 'rgba(255, 50, 50, 0.2)' : '#00ff00',
+                border: botSimulationActive ? '1px solid #ff3232' : 'none', 
+                color: botSimulationActive ? '#ffaaaa' : '#000', 
+                borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold',
+                transition: 'all 0.2s'
+              }}
+            >
+              {botSimulationActive ? 'Stop Simulation' : 'Start Simulation'}
+            </button>
+          </div>
+          <button style={{ ...buttonStyle, background: 'transparent' }} onClick={() => setCurrentMenu('main')}>Back</button>
+        </>
+      )}
     </div>
   );
 }

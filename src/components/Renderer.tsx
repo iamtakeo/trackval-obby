@@ -12,6 +12,8 @@ import { generateTrackCurve } from '../utils/trackGenerator';
 import type { TrackData } from '../utils/trackGenerator';
 import { generateRamps } from '../utils/rampData';
 import { SpectatorCamera } from './SpectatorCamera';
+import { BotSwarm } from './BotSwarm';
+import { HeatmapMesh } from './HeatmapMesh';
 
 export function Renderer() {
   const [trackData, setTrackData] = useState<TrackData | null>(gameStore.getTrackData());
@@ -95,6 +97,9 @@ export function Renderer() {
         
         {trackData && !isSpectating && <CarMesh trackData={trackData} updateMyState={updateMyState} />}
         {isSpectating && <SpectatorCamera />}
+        
+        {trackData && <BotSwarm trackData={trackData} />}
+        {trackData && <HeatmapMesh />}
         
         <OtherPlayers players={remotePlayers} />
       </Canvas>

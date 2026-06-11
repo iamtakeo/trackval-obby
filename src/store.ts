@@ -25,6 +25,18 @@ export const defaultCarCapabilities: CartesianCapabilities = {
   gravity: 50
 };
 
+export interface BotStats {
+  active: number;
+  success: number;
+  fail: number;
+}
+
+export interface BotTelemetry {
+  id: string;
+  position: { x: number, y: number, z: number };
+  reason: 'FellOff' | 'Stuck' | 'Success';
+}
+
 class GameStore {
   private speed = 0;
   private trackData: TrackData | null = null;
@@ -43,6 +55,14 @@ class GameStore {
     accessory: 'none'
   };
   private isSpectating = false;
+  
+  // Bot Validation State
+  private botSimulationActive = false;
+  private botCount = 5;
+  private showHeatmap = false;
+  private botStats: BotStats = { active: 0, success: 0, fail: 0 };
+  private telemetry: BotTelemetry[] = [];
+  
   private connectedPlayers: Record<string, any> = {};
   private ramps: RampData[] = defaultRamps;
   private listeners = new Set<Listener>();
@@ -115,6 +135,47 @@ class GameStore {
   }
 
   getIsSpectating = () => this.isSpectating;
+
+  setBotSimulationActive(active: boolean) {
+    if (this.botSimulationActive !== active) {
+      this.botSimulationActive = active;
+      this.emit();
+    }
+  }
+  getBotSimulationActive = () => this.botSimulationActive;
+
+  setBotCount(count: number) {
+    if (this.botCount !== count) {
+      this.botCount = count;
+      this.emit();
+    }
+  }
+  getBotCount = () => this.botCount;
+
+  setShowHeatmap(show: boolean) {
+    if (this.showHeatmap !== show) {
+      this.showHeatmap = show;
+      this.emit();
+    }
+  }
+  getShowHeatmap = () => this.showHeatmap;
+
+  setBotStats(stats: Partial<BotStats>) {
+    this.botStats = { ...this.botStats, ...stats };
+    this.emit();
+  }
+  getBotStats = () => this.botStats;
+  
+  addTelemetry(t: BotTelemetry) {
+    this.telemetry.push(t);
+    this.emit();
+  }
+  getTelemetry = () => this.telemetry;
+  clearTelemetry() {
+    this.telemetry = [];
+    this.botStats = { active: 0, success: 0, fail: 0 };
+    this.emit();
+  }
 
   setCarParameters(params: Partial<CartesianCapabilities>) {
     this.carParameters = { ...this.carParameters, ...params };
