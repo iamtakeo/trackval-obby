@@ -19,6 +19,8 @@ export function GeneratorMenu() {
   const [elevationVolatility, setElevationVolatility] = useState(10);
   const [sequenceVariety, setSequenceVariety] = useState(0.5);
   const [widthVolatility, setWidthVolatility] = useState(5);
+  const [maxSlope, setMaxSlope] = useState(0.4);
+  const [maxSteer, setMaxSteer] = useState(0.75);
   const [rampFrequency, setRampFrequency] = useState(8);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -53,7 +55,9 @@ export function GeneratorMenu() {
           turnChance: turnChance,
           elevationVolatility: elevationVolatility,
           sequenceVariety: sequenceVariety,
-          widthVolatility: widthVolatility
+          widthVolatility: widthVolatility,
+          maxSlope: maxSlope,
+          maxSteer: maxSteer * Math.PI
         });
 
         if (result.failureReason) {
@@ -228,6 +232,30 @@ export function GeneratorMenu() {
               <input 
                 type="range" min="0" max="25" step="1" value={widthVolatility} 
                 onChange={e => setWidthVolatility(parseInt(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label style={labelStyle}>
+                <span>Max Slope Clamp</span>
+                <span style={{ color: '#00e5ff' }}>{(maxSlope * 100).toFixed(0)}%</span>
+              </label>
+              <input 
+                type="range" min="0.1" max="2.0" step="0.05" value={maxSlope} 
+                onChange={e => setMaxSlope(parseFloat(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label style={labelStyle}>
+                <span>Max Steering Clamp</span>
+                <span style={{ color: '#00e5ff' }}>{(maxSteer * 180).toFixed(0)}°</span>
+              </label>
+              <input 
+                type="range" min="0.1" max="1.0" step="0.05" value={maxSteer} 
+                onChange={e => setMaxSteer(parseFloat(e.target.value))}
                 style={{ width: '100%' }}
               />
             </div>

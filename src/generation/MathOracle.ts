@@ -7,7 +7,7 @@ export type MathematicalSegment =
     | { type: 'loop'; startPoint: SplinePoint; radius: number; drift: number; endBank: number };
 
 export class MathOracle {
-    static generateMathematicalSegments(dna: TrackDNA, samplesPerSegment: number = 10): MathematicalSegment[] {
+    static generateMathematicalSegments(dna: TrackDNA, samplesPerSegment: number = 10, params: any = {}): MathematicalSegment[] {
         const segments: MathematicalSegment[] = [];
         
         let px = 0;
@@ -130,12 +130,12 @@ export class MathOracle {
                     const idealYaw = deltaYaw * (1 - steerStrength) + diff * steerStrength;
                     
                     // Clamp yaw to prevent physically impossible kinks
-                    const maxYaw = Math.PI * 0.75;
+                    const maxYaw = params.maxSteer ?? (Math.PI * 0.75);
                     deltaYaw = Math.max(-maxYaw, Math.min(maxYaw, idealYaw));
                     
                     // Smoothly descend to 0, but clamp to a playable slope!
                     const idealDeltaZ = (0 - pz) / remainingSegments;
-                    const maxSlopeZ = seg.radius * 0.4; // 40% max grade
+                    const maxSlopeZ = seg.radius * (params.maxSlope ?? 0.4); 
                     deltaZ = Math.max(-maxSlopeZ, Math.min(maxSlopeZ, idealDeltaZ));
                 }
             }

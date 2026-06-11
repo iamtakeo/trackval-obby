@@ -12,6 +12,8 @@ export interface GAConfig {
     sequenceVariety: number;
     widthVolatility: number;
     isClosed: boolean;
+    maxSlope?: number;
+    maxSteer?: number;
 }
 
 export class GeneticAlgorithm {
@@ -29,19 +31,29 @@ export class GeneticAlgorithm {
             elevationVolatility: config.elevationVolatility ?? 10,
             sequenceVariety: config.sequenceVariety ?? 0.5,
             widthVolatility: config.widthVolatility ?? 5,
-            isClosed: config.isClosed ?? false
+            isClosed: config.isClosed ?? false,
+            maxSlope: config.maxSlope,
+            maxSteer: config.maxSteer
         };
     }
 
     private randomSegment(): TrackSegmentDNA {
         const isStraight = Math.random() > this.config.turnChance;
+        const radius = isStraight ? Math.random() * 50 + 20 : Math.random() * 150 + 10;
+        
+        // Clamp elevation randomly based on maxSlope
+        const maxSlope = this.config.maxSlope ?? 0.4;
+        const maxZ = radius * maxSlope;
+        const rawElevation = (Math.random() - 0.5) * this.config.elevationVolatility;
+        const safeElevation = Math.max(-maxZ, Math.min(maxZ, rawElevation));
+        
         return {
             // straight lines have sweep 0 and radius acts as length
-            radius: isStraight ? Math.random() * 50 + 20 : Math.random() * 150 + 10,
+            radius: radius,
             sweepAngle: isStraight ? 0 : (Math.random() - 0.5) * Math.PI, // -90 to 90 degrees
             bankAngle: (Math.random() - 0.5) * (Math.PI / 4), // -22.5 to 22.5 degrees
             width: Math.max(5, 12 + (Math.random() - 0.5) * this.config.widthVolatility), 
-            elevation: (Math.random() - 0.5) * this.config.elevationVolatility // elevation delta based on volatility
+            elevation: safeElevation
         };
     }
 

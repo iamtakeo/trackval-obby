@@ -32,6 +32,8 @@ export interface GeneratorParams {
   elevationVolatility?: number;
   sequenceVariety?: number;
   widthVolatility?: number;
+  maxSlope?: number;
+  maxSteer?: number;
 }
 
 const defaultCapabilities: CartesianCapabilities = {
@@ -47,7 +49,7 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
   const validator = new TrackValidator(defaultCapabilities);
 
   if (params.dna) {
-    const segments = MathOracle.generateMathematicalSegments(params.dna, 5);
+    const segments = MathOracle.generateMathematicalSegments(params.dna, 5, params);
     return buildTrackCurve(segments, params.dna);
   }
 
@@ -62,7 +64,9 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
     turnChance: params.turnChance,
     elevationVolatility: params.elevationVolatility,
     sequenceVariety: params.sequenceVariety,
-    isClosed: params.isClosed
+    isClosed: params.isClosed,
+    maxSlope: params.maxSlope,
+    maxSteer: params.maxSteer
   });
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -87,7 +91,7 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
       continue;
     }
 
-    const segments = MathOracle.generateMathematicalSegments(bestDna, 5);
+    const segments = MathOracle.generateMathematicalSegments(bestDna, 5, params);
     return buildTrackCurve(segments, bestDna);
   }
 
