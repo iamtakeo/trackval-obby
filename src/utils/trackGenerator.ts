@@ -166,9 +166,12 @@ function buildTrackCurve(segments: MathematicalSegment[], dna?: TrackDNA): Track
         const endTangent = firstCurve.getTangent(0).normalize();
         
         const distance = startPt.distanceTo(endPt);
-        // Guarantee at least 30m of control point strength so the track has room to bend gracefully 
-        // without pinching into a microscopic knot if the tangents are misaligned!
-        const cpStrength = Math.max(distance * 0.4, 40); 
+        const dir = endPt.clone().sub(startPt).normalize();
+        const startOpposed = Math.max(0, -startTangent.dot(dir));
+        const endOpposed = Math.max(0, endTangent.dot(dir));
+        const minStrength = Math.max(startOpposed, endOpposed) * 30; // Only force large curves if tangents are opposed to travel!
+        
+        const cpStrength = Math.max(distance * 0.4, minStrength); 
         const cp1 = startPt.clone().add(startTangent.clone().multiplyScalar(cpStrength));
         const cp2 = endPt.clone().sub(endTangent.clone().multiplyScalar(cpStrength));
         
@@ -252,6 +255,11 @@ export function computeFixedUpFrames(curvePath: THREE.CurvePath<THREE.Vector3>, 
         if (Math.abs(tangent.y) < 0.99) {
             binormals[i].crossVectors(tangent, globalUp).normalize();
             normals[i].crossVectors(binormals[i], tangent).normalize();
+        } else {
+            // Track is perfectly vertical, prevent Frenet gimbal lock by using parallel transport from previous frame
+            const prevBinormal = i > 0 ? binormals[i - 1] : new THREE.Vector3(1, 0, 0);
+            normals[i].crossVectors(prevBinormal, tangent).normalize();
+            binormals[i].crossVectors(tangent, normals[i]).normalize();
         }
         loopBinormal.copy(binormals[i]);
     } else {
