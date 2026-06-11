@@ -141,7 +141,7 @@ export class FitnessFunction {
                 const p1 = points[i];
                 const p2 = points[j];
                 const dx = p1.x - p2.x;
-                const dy = p1.y - p2.y; // horizontal Y
+                const dy = p1.y - p2.y; // horizontal
                 const distSq = dx*dx + dy*dy;
                 
                 const minClearance = (p1.w + p2.w) / 2;
@@ -160,12 +160,15 @@ export class FitnessFunction {
             const startPt = points[0];
             const endPt = points[numPoints - 1];
             
-            const dx = endPt.x - startPt.x;
+            // Score the track based on how close it gets to the "approach point" 
+            // 50 meters directly behind the start line!
+            const approachX = startPt.x - 50;
+            const dx = endPt.x - approachX;
             const dy = endPt.y - startPt.y;
             const dz = endPt.z - startPt.z;
             const distSq = dx*dx + dy*dy;
             
-            // Severe penalty for ending far from the start
+            // Severe penalty for ending far from the approach point
             fitness -= distSq * 20;
             // Severe penalty for vertical misalignment
             fitness -= Math.pow(dz, 2) * 50;

@@ -107,7 +107,9 @@ export class MathOracle {
                 if (progress > 0.5) {
                     const remainingSegments = dna.segments.length - sIdx;
                     
-                    const targetYaw = Math.atan2(0 - py, 0 - px);
+                    // Aim for an approach point 50 meters directly behind the start line
+                    // The track starts at (0,0) and travels along +X, so "behind" is -50 on X.
+                    const targetYaw = Math.atan2(0 - py, -50 - px);
                     
                     let diffToOrigin = targetYaw - yaw;
                     while (diffToOrigin > Math.PI) diffToOrigin -= 2 * Math.PI;
