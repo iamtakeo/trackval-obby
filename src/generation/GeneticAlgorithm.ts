@@ -64,11 +64,14 @@ export class GeneticAlgorithm {
     }
 
     private mutate(dna: TrackDNA) {
-        dna.segments = dna.segments.map(seg => {
+        for (let i = 0; i < dna.segments.length; i++) {
             if (Math.random() < this.config.mutationRate) {
-                const isLoop = Math.random() < this.config.loopChance; // chance to become a loop
+                const seg = dna.segments[i];
+                
+                // 1. Loop check
+                const isLoop = Math.random() < this.config.loopChance;
                 if (isLoop) {
-                    return {
+                    dna.segments[i] = {
                         type: 'loop',
                         radius: 15 + Math.random() * 20, // Loops need to be large enough
                         sweepAngle: 2 * Math.PI,
@@ -76,10 +79,42 @@ export class GeneticAlgorithm {
                         width: seg.width,
                         elevation: 0
                     };
+                    continue;
+                }
+
+                // 2. Feature Macro check (15% chance to inject a macro instead of normal mutation)
+                if (Math.random() < 0.15) {
+                    const macroType = Math.random();
+                    if (macroType < 0.25 && i < dna.segments.length - 1) {
+                        // Chicane (S-Turn) - requires 2 segments
+                        const sweep = (Math.random() * Math.PI / 4) + Math.PI / 6; // 30 to 75 deg
+                        const radius = 20 + Math.random() * 30; // 20 to 50
+                        const dir = Math.random() > 0.5 ? 1 : -1;
+                        
+                        dna.segments[i] = { ...seg, type: 'normal', radius, sweepAngle: sweep * dir, bankAngle: 0, elevation: 0 };
+                        dna.segments[i+1] = { ...dna.segments[i+1], type: 'normal', radius, sweepAngle: sweep * -dir, bankAngle: 0, elevation: 0 };
+                        i++; // skip next segment as it is part of the chicane
+                        continue;
+                    } else if (macroType < 0.50) {
+                        // Hairpin
+                        const dir = Math.random() > 0.5 ? 1 : -1;
+                        dna.segments[i] = { ...seg, type: 'normal', radius: 15 + Math.random() * 10, sweepAngle: Math.PI * dir, bankAngle: (Math.PI/6) * dir, elevation: 0 };
+                        continue;
+                    } else if (macroType < 0.75) {
+                        // Long Sweeper
+                        const dir = Math.random() > 0.5 ? 1 : -1;
+                        dna.segments[i] = { ...seg, type: 'normal', radius: 100 + Math.random() * 100, sweepAngle: (Math.PI * 0.7) * dir, bankAngle: (Math.PI/12) * dir, elevation: 0 };
+                        continue;
+                    } else {
+                        // Camelback (Hills)
+                        dna.segments[i] = { ...seg, type: 'normal', radius: 50 + Math.random() * 50, sweepAngle: 0, bankAngle: 0, elevation: 15 + Math.random() * 20 };
+                        continue;
+                    }
                 }
                 
+                // 3. Normal Jitter Mutation
                 const newSweep = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, (seg.sweepAngle || 0) + (Math.random() - 0.5) * Math.PI / 4));
-                return {
+                dna.segments[i] = {
                     ...seg,
                     type: 'normal',
                     radius: Math.max((seg.width || 10) / 2 + 5, Math.max(10, (seg.radius || 0) + (Math.random() - 0.5) * 50)),
@@ -89,8 +124,7 @@ export class GeneticAlgorithm {
                     elevation: (seg.elevation || 0) + (Math.random() - 0.5) * this.config.elevationVolatility
                 };
             }
-            return seg;
-        });
+        }
 
         // Ensure loops have straight padding
         for (let i = 0; i < dna.segments.length; i++) {
