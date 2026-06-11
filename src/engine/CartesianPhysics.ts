@@ -11,7 +11,7 @@ export interface CartesianState {
   // and handle gravity separately as a vertical velocity.
   forwardSpeed: number;
   verticalSpeed: number;
-  heading: number; // yaw angle in radians. 0 means pointing along Z.
+  carDirection: Vector3; // The true 3D vector of the car's heading
   isGrounded: boolean;
   surfaceNormal: Vector3; // The UP vector of the surface we are driving on
 }
@@ -174,6 +174,23 @@ export class CartesianPhysics {
     newState.forwardSpeed += accel * dt;
     newState.forwardSpeed = Math.max(-this.capabilities.maxVelocity * 0.2, Math.min(newState.forwardSpeed, this.capabilities.maxVelocity));
 
+    // Helper for 3D rotation (Rodrigues' rotation formula)
+    const rotateVector = (v: Vector3, k: Vector3, theta: number): Vector3 => {
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+        const kxv = {
+            x: k.y * v.z - k.z * v.y,
+            y: k.z * v.x - k.x * v.z,
+            z: k.x * v.y - k.y * v.x
+        };
+        const kdotv = k.x * v.x + k.y * v.y + k.z * v.z;
+        return {
+            x: v.x * cosT + kxv.x * sinT + k.x * kdotv * (1 - cosT),
+            y: v.y * cosT + kxv.y * sinT + k.y * kdotv * (1 - cosT),
+            z: v.z * cosT + kxv.z * sinT + k.z * kdotv * (1 - cosT)
+        };
+    };
+
     // 2. Steering
     let effectiveSpeedForSteering = Math.abs(newState.forwardSpeed);
     if (effectiveSpeedForSteering > 0.1) {
@@ -185,12 +202,18 @@ export class CartesianPhysics {
        currentSensitivity *= 1.5; 
     }
     const turnRadiusEffect = effectiveSpeedForSteering * currentSensitivity;
-    newState.heading -= inputs.steering * direction * turnRadiusEffect * dt;
+    
+    // Rotate carDirection around surfaceNormal
+    if (inputs.steering !== 0) {
+        const angle = -inputs.steering * direction * turnRadiusEffect * dt;
+        newState.carDirection = rotateVector(newState.carDirection, newState.surfaceNormal, angle);
+    }
 
     // 3. Environment Query
     const surfaceInfo = this.getClosestTrackSurface(newState.position.x, newState.position.y, newState.position.z);
     
     let targetNormal = { x: 0, y: 1, z: 0 };
+    let targetBinormal = { x: 1, y: 0, z: 0 };
     let isTrackSurface = false;
     let distToSurface = 0;
     let exactPos = { x: newState.position.x, y: 0, z: newState.position.z };
@@ -205,6 +228,7 @@ export class CartesianPhysics {
         if (Math.abs(distToSurface) < 3.0 || (state.isGrounded && Math.abs(distToSurface) < 6.0)) {
             isTrackSurface = true;
             targetNormal = surfaceInfo.normal;
+            targetBinormal = surfaceInfo.binormal;
             exactPos = surfaceInfo.exactPos;
         }
     }
@@ -267,27 +291,38 @@ export class CartesianPhysics {
         }
     }
 
-    const flatForward = { x: Math.sin(newState.heading), y: 0, z: Math.cos(newState.heading) };
-
     if (isTrackSurface && !shouldFall) {
         // --- GROUNDED PHYSICS ---
         newState.isGrounded = true;
         newState.surfaceNormal = targetNormal;
+        
+        // Gravity influence
+        // Gravity pulls DOWN (0, -1, 0)
+        // Does gravity pull the car sideways?
+        const gravityLateral = -this.capabilities.gravity * targetBinormal.y;
+        
+        // Let gravity affect the heading (drifting down the bank)
+        // If track is banked, gravity pulls the car downhill sideways.
+        if (Math.abs(gravityLateral) > 0.1) {
+             const slipRate = 0.05;
+             const driftAngle = gravityLateral * slipRate * dt;
+             newState.carDirection = rotateVector(newState.carDirection, newState.surfaceNormal, driftAngle);
+        }
 
         // Project forward direction onto the surface plane
-        const dot = flatForward.x * targetNormal.x + flatForward.y * targetNormal.y + flatForward.z * targetNormal.z;
+        const dot = newState.carDirection.x * targetNormal.x + newState.carDirection.y * targetNormal.y + newState.carDirection.z * targetNormal.z;
         let surfaceForward = {
-            x: flatForward.x - dot * targetNormal.x,
-            y: flatForward.y - dot * targetNormal.y,
-            z: flatForward.z - dot * targetNormal.z
+            x: newState.carDirection.x - dot * targetNormal.x,
+            y: newState.carDirection.y - dot * targetNormal.y,
+            z: newState.carDirection.z - dot * targetNormal.z
         };
+        
         const len = Math.sqrt(surfaceForward.x * surfaceForward.x + surfaceForward.y * surfaceForward.y + surfaceForward.z * surfaceForward.z);
         if (len > 0.001) {
             surfaceForward.x /= len;
             surfaceForward.y /= len;
             surfaceForward.z /= len;
-        } else {
-            surfaceForward = flatForward;
+            newState.carDirection = surfaceForward;
         }
 
         const velocity = {
@@ -318,10 +353,20 @@ export class CartesianPhysics {
         
         newState.verticalSpeed -= this.capabilities.gravity * dt;
         
+        // When airborne, project carDirection to horizontal plane to simulate level flight
+        const flatDir = { x: newState.carDirection.x, y: 0, z: newState.carDirection.z };
+        const flatLen = Math.sqrt(flatDir.x * flatDir.x + flatDir.z * flatDir.z);
+        if (flatLen > 0.001) {
+             flatDir.x /= flatLen;
+             flatDir.z /= flatLen;
+        } else {
+             flatDir.z = 1;
+        }
+        
         const velocity = {
-            x: flatForward.x * newState.forwardSpeed,
+            x: flatDir.x * newState.forwardSpeed,
             y: newState.verticalSpeed,
-            z: flatForward.z * newState.forwardSpeed
+            z: flatDir.z * newState.forwardSpeed
         };
 
         newState.position.x += velocity.x * dt;

@@ -97,15 +97,13 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
   const getInitialState = (): CartesianState => {
     const startPos = physics.track.getCartesian(0, 0);
     const startTangent = physics.track.getTangent(0);
-    // heading 0 means +Z. In Three.js Math.atan2(x, z) gives angle where sin=x, cos=z
-    const startHeading = Math.atan2(startTangent.x, startTangent.z);
     
     return {
       position: { x: startPos.x, y: startPos.y + 1.0, z: startPos.z }, // spawn within physics snapping range
       velocity: { x: 0, y: 0, z: 0 },
       forwardSpeed: 0,
       verticalSpeed: 0,
-      heading: startHeading,
+      carDirection: { x: startTangent.x, y: startTangent.y, z: startTangent.z }, // align with track forward
       isGrounded: false,
       surfaceNormal: { x: 0, y: 1, z: 0 }
     };
@@ -163,14 +161,7 @@ export function CarMesh({ trackData, updateMyState }: CarMeshProps) {
     }
 
     // Apply heading
-    // First, get the flat forward direction
-    const flatForward = new THREE.Vector3(Math.sin(newState.heading), 0, Math.cos(newState.heading)).normalize();
-    
-    // Project the flat forward direction onto the plane defined by the interpolated surface normal
-    // right = up x flatForward
-    const right = new THREE.Vector3().crossVectors(carRef.current.up, flatForward).normalize();
-    // true surface forward = right x up
-    const surfaceForward = new THREE.Vector3().crossVectors(right, carRef.current.up).normalize();
+    const surfaceForward = new THREE.Vector3(newState.carDirection.x, newState.carDirection.y, newState.carDirection.z);
     
     // We add the surface forward direction to the position to look at it
     const lookAtPos = carRef.current.position.clone().add(surfaceForward);
