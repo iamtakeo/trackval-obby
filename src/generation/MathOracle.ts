@@ -99,9 +99,40 @@ export class MathOracle {
                 continue;
             }
 
-            const isStraight = Math.abs(seg.sweepAngle) < 0.0001;
-            const deltaYaw = seg.sweepAngle;
-            const deltaZ = seg.elevation;
+            let deltaYaw = seg.sweepAngle;
+            let deltaZ = seg.elevation;
+
+            if (dna.isClosed) {
+                const progress = sIdx / dna.segments.length;
+                if (progress > 0.5) {
+                    const remainingSegments = dna.segments.length - sIdx;
+                    
+                    const targetYaw = Math.atan2(0 - py, 0 - px);
+                    
+                    let diffToOrigin = targetYaw - yaw;
+                    while (diffToOrigin > Math.PI) diffToOrigin -= 2 * Math.PI;
+                    while (diffToOrigin < -Math.PI) diffToOrigin += 2 * Math.PI;
+                    
+                    let diffToGoalHeading = 0 - yaw;
+                    while (diffToGoalHeading > Math.PI) diffToGoalHeading -= 2 * Math.PI;
+                    while (diffToGoalHeading < -Math.PI) diffToGoalHeading += 2 * Math.PI;
+                    
+                    // Blend between pointing at origin and pointing at final heading
+                    // At progress=0.5, 100% point at origin. At progress=1.0, 100% point at goal heading.
+                    const headingBlend = (progress - 0.5) / 0.5; // 0 to 1
+                    
+                    const diff = diffToOrigin * (1 - headingBlend) + diffToGoalHeading * headingBlend;
+                    
+                    // Accelerate steering strength exponentially
+                    const steerStrength = Math.pow(headingBlend, 1.5); 
+                    deltaYaw = deltaYaw * (1 - steerStrength) + diff * steerStrength;
+                    
+                    // Smoothly descend to 0
+                    deltaZ = (0 - pz) / remainingSegments;
+                }
+            }
+
+            const isStraight = Math.abs(deltaYaw) < 0.0001;
             
             for (let i = 1; i <= samples; i++) {
                 const t = i / samples;

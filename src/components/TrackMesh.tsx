@@ -9,7 +9,7 @@ interface TrackMeshProps {
 export function TrackMesh({ trackData }: TrackMeshProps) {
   const { geometry, pillarData } = useMemo(() => {
     // 1. Create the Track BufferGeometry
-    const steps = 400;
+    const steps = 800;
     const depth = 1.0;
     
     const positions: number[] = [];

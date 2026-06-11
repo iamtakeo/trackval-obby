@@ -166,7 +166,9 @@ function buildTrackCurve(segments: MathematicalSegment[], dna?: TrackDNA): Track
         const endTangent = firstCurve.getTangent(0).normalize();
         
         const distance = startPt.distanceTo(endPt);
-        const cpStrength = Math.min(distance * 0.33, 40); // Cap strength to prevent wild hairpins
+        // Guarantee at least 30m of control point strength so the track has room to bend gracefully 
+        // without pinching into a microscopic knot if the tangents are misaligned!
+        const cpStrength = Math.max(distance * 0.4, 40); 
         const cp1 = startPt.clone().add(startTangent.clone().multiplyScalar(cpStrength));
         const cp2 = endPt.clone().sub(endTangent.clone().multiplyScalar(cpStrength));
         
@@ -188,7 +190,7 @@ function buildTrackCurve(segments: MathematicalSegment[], dna?: TrackDNA): Track
         });
     }
 
-    const frames = computeFixedUpFrames(curvePath, 400, worldSegments);
+    const frames = computeFixedUpFrames(curvePath, 800, worldSegments);
     return { curve: curvePath, frames, dna }; 
 }
 
