@@ -21,6 +21,8 @@ export function GeneratorMenu() {
   const [widthVolatility, setWidthVolatility] = useState(5);
   const [maxSlope, setMaxSlope] = useState(0.4);
   const [maxSteer, setMaxSteer] = useState(0.75);
+  const [minSegmentLength, setMinSegmentLength] = useState(10);
+  const [maxSegmentLength, setMaxSegmentLength] = useState(150);
   const [rampFrequency, setRampFrequency] = useState(8);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -57,7 +59,9 @@ export function GeneratorMenu() {
           sequenceVariety: sequenceVariety,
           widthVolatility: widthVolatility,
           maxSlope: maxSlope,
-          maxSteer: maxSteer * Math.PI
+          maxSteer: maxSteer * Math.PI,
+          minSegmentLength: minSegmentLength,
+          maxSegmentLength: maxSegmentLength
         });
 
         if (result.failureReason) {
@@ -256,6 +260,38 @@ export function GeneratorMenu() {
               <input 
                 type="range" min="0.1" max="1.0" step="0.05" value={maxSteer} 
                 onChange={e => setMaxSteer(parseFloat(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label style={labelStyle}>
+                <span>Min Segment Length</span>
+                <span style={{ color: '#00e5ff' }}>{minSegmentLength}m</span>
+              </label>
+              <input 
+                type="range" min="5" max="100" step="5" value={minSegmentLength} 
+                onChange={e => {
+                  const val = parseInt(e.target.value);
+                  setMinSegmentLength(val);
+                  if (val > maxSegmentLength) setMaxSegmentLength(val);
+                }}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label style={labelStyle}>
+                <span>Max Segment Length</span>
+                <span style={{ color: '#00e5ff' }}>{maxSegmentLength}m</span>
+              </label>
+              <input 
+                type="range" min="50" max="500" step="10" value={maxSegmentLength} 
+                onChange={e => {
+                  const val = parseInt(e.target.value);
+                  setMaxSegmentLength(val);
+                  if (val < minSegmentLength) setMinSegmentLength(val);
+                }}
                 style={{ width: '100%' }}
               />
             </div>

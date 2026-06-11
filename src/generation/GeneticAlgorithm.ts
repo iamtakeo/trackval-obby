@@ -14,6 +14,8 @@ export interface GAConfig {
     isClosed: boolean;
     maxSlope?: number;
     maxSteer?: number;
+    minSegmentLength?: number;
+    maxSegmentLength?: number;
 }
 
 export class GeneticAlgorithm {
@@ -33,13 +35,18 @@ export class GeneticAlgorithm {
             widthVolatility: config.widthVolatility ?? 5,
             isClosed: config.isClosed ?? false,
             maxSlope: config.maxSlope,
-            maxSteer: config.maxSteer
+            maxSteer: config.maxSteer,
+            minSegmentLength: config.minSegmentLength ?? 10,
+            maxSegmentLength: config.maxSegmentLength ?? 150
         };
     }
 
     private randomSegment(): TrackSegmentDNA {
         const isStraight = Math.random() > this.config.turnChance;
-        const radius = isStraight ? Math.random() * 50 + 20 : Math.random() * 150 + 10;
+        
+        const minLen = this.config.minSegmentLength ?? 10;
+        const maxLen = this.config.maxSegmentLength ?? 150;
+        const radius = Math.random() * (maxLen - minLen) + minLen;
         
         // Clamp elevation randomly based on maxSlope
         const maxSlope = this.config.maxSlope ?? 0.4;
@@ -102,8 +109,9 @@ export class GeneticAlgorithm {
                     const macroType = Math.random();
                     if (macroType < 0.25 && i < dna.segments.length - 1) {
                         // Chicane (S-Turn) - requires 2 segments
+                        const minLen = this.config.minSegmentLength ?? 10;
                         const sweep = (Math.random() * Math.PI / 4) + Math.PI / 6; // 30 to 75 deg
-                        const radius = 20 + Math.random() * 30; // 20 to 50
+                        const radius = Math.max(minLen, 20 + Math.random() * 30); // 20 to 50
                         const dir = Math.random() > 0.5 ? 1 : -1;
                         
                         dna.segments[i] = { ...seg, type: 'normal', radius, sweepAngle: sweep * dir, bankAngle: 0, elevation: 0 };
@@ -118,11 +126,13 @@ export class GeneticAlgorithm {
                     } else if (macroType < 0.75) {
                         // Long Sweeper
                         const dir = Math.random() > 0.5 ? 1 : -1;
-                        dna.segments[i] = { ...seg, type: 'normal', radius: 100 + Math.random() * 100, sweepAngle: (Math.PI * 0.7) * dir, bankAngle: (Math.PI/12) * dir, elevation: 0 };
+                        const maxLen = this.config.maxSegmentLength ?? 150;
+                        dna.segments[i] = { ...seg, type: 'normal', radius: Math.min(maxLen, 100 + Math.random() * 100), sweepAngle: (Math.PI * 0.7) * dir, bankAngle: (Math.PI/12) * dir, elevation: 0 };
                         continue;
                     } else {
                         // Camelback (Hills)
-                        dna.segments[i] = { ...seg, type: 'normal', radius: 50 + Math.random() * 50, sweepAngle: 0, bankAngle: 0, elevation: 15 + Math.random() * 20 };
+                        const maxLen = this.config.maxSegmentLength ?? 150;
+                        dna.segments[i] = { ...seg, type: 'normal', radius: Math.min(maxLen, 50 + Math.random() * 50), sweepAngle: 0, bankAngle: 0, elevation: 15 + Math.random() * 20 };
                         continue;
                     }
                 }
@@ -130,10 +140,15 @@ export class GeneticAlgorithm {
                 // 3. Normal Jitter Mutation
                 const newSweep = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, (seg.sweepAngle || 0) + (Math.random() - 0.5) * Math.PI / 4));
                 const newWidth = Math.max(5, (seg.width || 12) + (Math.random() - 0.5) * this.config.widthVolatility);
+                
+                const minLen = this.config.minSegmentLength ?? 10;
+                const maxLen = this.config.maxSegmentLength ?? 150;
+                const newRadius = Math.max((seg.width || 10) / 2 + 5, Math.max(minLen, Math.min(maxLen, (seg.radius || 0) + (Math.random() - 0.5) * 50)));
+                
                 dna.segments[i] = {
                     ...seg,
                     type: 'normal',
-                    radius: Math.max((seg.width || 10) / 2 + 5, Math.max(10, (seg.radius || 0) + (Math.random() - 0.5) * 50)),
+                    radius: newRadius,
                     sweepAngle: Math.abs(newSweep) < 0.0001 ? 0 : newSweep,
                     bankAngle: (seg.bankAngle || 0) + (Math.random() - 0.5) * 0.2,
                     width: newWidth,

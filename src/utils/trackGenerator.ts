@@ -34,6 +34,8 @@ export interface GeneratorParams {
   widthVolatility?: number;
   maxSlope?: number;
   maxSteer?: number;
+  minSegmentLength?: number;
+  maxSegmentLength?: number;
 }
 
 const defaultCapabilities: CartesianCapabilities = {
@@ -66,7 +68,9 @@ export function generateTrackCurve(params: GeneratorParams = {}): TrackData {
     sequenceVariety: params.sequenceVariety,
     isClosed: params.isClosed,
     maxSlope: params.maxSlope,
-    maxSteer: params.maxSteer
+    maxSteer: params.maxSteer,
+    minSegmentLength: params.minSegmentLength,
+    maxSegmentLength: params.maxSegmentLength
   });
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
