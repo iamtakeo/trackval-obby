@@ -83,10 +83,19 @@ export class GeneticAlgorithm {
             return seg;
         });
 
-        // Ensure loops have no camber approaching them
-        for (let i = 1; i < dna.segments.length; i++) {
+        // Ensure loops have straight padding
+        for (let i = 0; i < dna.segments.length; i++) {
             if (dna.segments[i].type === 'loop') {
-                dna.segments[i - 1].bankAngle = 0;
+                if (i > 0 && dna.segments[i - 1].type !== 'loop') {
+                    dna.segments[i - 1].bankAngle = 0;
+                    dna.segments[i - 1].sweepAngle = 0;
+                    dna.segments[i - 1].elevation = 0; // ensure flat entry
+                }
+                if (i < dna.segments.length - 1 && dna.segments[i + 1].type !== 'loop') {
+                    dna.segments[i + 1].bankAngle = 0;
+                    dna.segments[i + 1].sweepAngle = 0;
+                    dna.segments[i + 1].elevation = 0; // ensure flat exit
+                }
             }
         }
     }
