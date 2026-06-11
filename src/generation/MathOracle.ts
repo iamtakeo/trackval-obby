@@ -127,10 +127,16 @@ export class MathOracle {
                     
                     // Accelerate steering strength exponentially
                     const steerStrength = Math.pow(headingBlend, 1.5); 
-                    deltaYaw = deltaYaw * (1 - steerStrength) + diff * steerStrength;
+                    const idealYaw = deltaYaw * (1 - steerStrength) + diff * steerStrength;
                     
-                    // Smoothly descend to 0
-                    deltaZ = (0 - pz) / remainingSegments;
+                    // Clamp yaw to prevent physically impossible kinks
+                    const maxYaw = Math.PI * 0.75;
+                    deltaYaw = Math.max(-maxYaw, Math.min(maxYaw, idealYaw));
+                    
+                    // Smoothly descend to 0, but clamp to a playable slope!
+                    const idealDeltaZ = (0 - pz) / remainingSegments;
+                    const maxSlopeZ = seg.radius * 0.4; // 40% max grade
+                    deltaZ = Math.max(-maxSlopeZ, Math.min(maxSlopeZ, idealDeltaZ));
                 }
             }
 
