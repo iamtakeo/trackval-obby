@@ -1,4 +1,5 @@
 import type { TrackDNA } from './types';
+import { MathOracle } from './MathOracle';
 
 export class FitnessFunction {
     /**
@@ -110,6 +111,42 @@ export class FitnessFunction {
             }
         }
         fitness += thrillBonus;
+
+        // --- 4. Spatial Intersections ---
+        let collisionPenalty = 0;
+        const mathSegments = MathOracle.generateMathematicalSegments(dna, 3);
+        const points: {x: number, y: number, z: number, w: number}[] = [];
+        
+        for (const seg of mathSegments) {
+            if (seg.type === 'catmull') {
+                for (const pt of seg.points) {
+                    points.push({ x: pt.position[0], y: pt.position[1], z: pt.position[2], w: pt.width });
+                }
+            } else {
+                points.push({ x: seg.startPoint.position[0], y: seg.startPoint.position[1], z: seg.startPoint.position[2], w: seg.startPoint.width });
+            }
+        }
+        
+        const numPoints = points.length;
+        // Compare non-adjacent points (index separation of 15 points ensures they aren't part of the same curve section)
+        for (let i = 0; i < numPoints; i++) {
+            for (let j = i + 15; j < numPoints; j++) {
+                const p1 = points[i];
+                const p2 = points[j];
+                const dx = p1.x - p2.x;
+                const dy = p1.y - p2.y; // horizontal Y
+                const distSq = dx*dx + dy*dy;
+                
+                const minClearance = (p1.w + p2.w) / 2;
+                if (distSq < minClearance * minClearance) {
+                    const dz = Math.abs(p1.z - p2.z);
+                    if (dz < 20) {
+                        collisionPenalty += 5000;
+                    }
+                }
+            }
+        }
+        fitness -= collisionPenalty;
 
         return Math.max(0, fitness + 1000); // Shift to keep positive
     }

@@ -42,6 +42,13 @@ export function TrackMesh({ trackData }: TrackMeshProps) {
     const pData = [];
     const groundY = 0; // Fix grass height
 
+    // Pre-sample track points for intersection checks
+    const trackSamples: THREE.Vector3[] = [];
+    const sampleCount = 200;
+    for (let i = 0; i <= sampleCount; i++) {
+        trackSamples.push(trackData.curve.getPointAt(i / sampleCount));
+    }
+
     for (let i = 0; i < numPillars; i++) {
       const t = i / numPillars;
       const pos = trackData.curve.getPointAt(t);
@@ -51,6 +58,22 @@ export function TrackMesh({ trackData }: TrackMeshProps) {
       
       // Skip pillars if track is steep, banked, or upside down
       if (normal.y < 0.5) {
+          continue;
+      }
+
+      // Skip pillars if there's a track segment directly below this point
+      let trackDirectlyBelow = false;
+      for (const sample of trackSamples) {
+          const dx = sample.x - pos.x;
+          const dz = sample.z - pos.z;
+          const distSq = dx * dx + dz * dz;
+          if (distSq < 15 * 15 && sample.y < pos.y - 5) {
+              trackDirectlyBelow = true;
+              break;
+          }
+      }
+
+      if (trackDirectlyBelow) {
           continue;
       }
       
