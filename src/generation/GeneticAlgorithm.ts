@@ -75,7 +75,7 @@ export class GeneticAlgorithm {
                     ...seg,
                     type: 'normal',
                     radius: Math.max((seg.width || 10) / 2 + 5, Math.max(10, (seg.radius || 0) + (Math.random() - 0.5) * 50)),
-                    sweepAngle: Math.abs(newSweep) < 0.05 ? 0 : newSweep,
+                    sweepAngle: Math.abs(newSweep) < 0.0001 ? 0 : newSweep,
                     bankAngle: (seg.bankAngle || 0) + (Math.random() - 0.5) * 0.2,
                     width: seg.width,
                     elevation: (seg.elevation || 0) + (Math.random() - 0.5) * 10
